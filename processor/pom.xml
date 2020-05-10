@@ -1,4 +1,6 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.jresearch.gwt.time</groupId>
@@ -44,6 +46,14 @@
 			<artifactId>logback-classic</artifactId>
 			<scope>runtime</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.immutables</groupId>
+			<artifactId>value-annotations</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.google.code.findbugs</groupId>
+			<artifactId>jsr305</artifactId>
+		</dependency>
 		<!-- <dependency>
 			<groupId>jakarta.xml.bind</groupId>
 			<artifactId>jakarta.xml.bind-api</artifactId>
@@ -65,6 +75,11 @@
 							<groupId>com.google.auto.service</groupId>
 							<artifactId>auto-service</artifactId>
 							<version>${auto-service.ver}</version>
+						</path>
+						<path>
+							<groupId>org.immutables</groupId>
+							<artifactId>value</artifactId>
+							<version>${immutables.ver}</version>
 						</path>
 					</annotationProcessorPaths>
 				</configuration>

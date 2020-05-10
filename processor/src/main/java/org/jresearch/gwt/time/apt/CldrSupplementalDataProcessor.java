@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.net.URL;
 import java.time.DayOfWeek;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -25,9 +26,12 @@ import javax.xml.bind.JAXBException;
 import org.jresearch.gwt.time.apt.annotation.Cldr;
 import org.jresearch.gwt.time.apt.cldr.CodeMappings;
 import org.jresearch.gwt.time.apt.cldr.FirstDay;
+import org.jresearch.gwt.time.apt.cldr.LanguagePopulation;
 import org.jresearch.gwt.time.apt.cldr.MinDays;
 import org.jresearch.gwt.time.apt.cldr.SupplementalData;
+import org.jresearch.gwt.time.apt.cldr.Territory;
 import org.jresearch.gwt.time.apt.cldr.TerritoryCodes;
+import org.jresearch.gwt.time.apt.cldr.TerritoryInfo;
 import org.jresearch.gwt.time.apt.cldr.WeekData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +56,8 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 
 	private static final String CLDR_XML = "supplementalData.xml";
 	public static final String REGION_ENUM_NAME = "Region";
-	private static final String SUPPLEMENTAL_DATA_CLASS_NAME = "WeekInfo";
+	private static final String WEEK_INFO_CLASS_NAME = "WeekInfo";
+	private static final String LOCALE_INFO_CLASS_NAME = "LocaleInfo";
 
 	@Override
 	public Set<String> getSupportedAnnotationTypes() {
@@ -86,6 +91,9 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 		supplementalData
 				.map(SupplementalData::getWeekData)
 				.ifPresent(d -> generateWeekInfoClass(d, packageName));
+		supplementalData
+				.map(SupplementalData::getTerritoryInfo)
+				.ifPresent(d -> generateLocaleInfoClass(d, packageName));
 	}
 
 	private Void generateTerritoryEnumClass(final List<String> territories, final Name packageName) {
@@ -126,7 +134,7 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 	}
 
 	private Void generateWeekInfoClass(final WeekData weekData, final Name packageName) {
-		final WeekInfoClassBuilder builder = WeekInfoClassBuilder.create(packageName, SUPPLEMENTAL_DATA_CLASS_NAME);
+		final WeekInfoClassBuilder builder = WeekInfoClassBuilder.create(packageName, WEEK_INFO_CLASS_NAME);
 		DayOfWeek firstDay = StreamEx.of(weekData.getFirstDay())
 				.filter(CldrSupplementalDataProcessor::isDefault)
 				.findAny()
@@ -169,7 +177,7 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 		JavaFile javaFile = javaFileBuilder.build();
 
 		try {
-			final JavaFileObject jfo = processingEnv.getFiler().createSourceFile(packageName.toString() + "." + SUPPLEMENTAL_DATA_CLASS_NAME);
+			final JavaFileObject jfo = processingEnv.getFiler().createSourceFile(packageName.toString() + "." + WEEK_INFO_CLASS_NAME);
 			try (Writer wr = jfo.openWriter()) {
 				javaFile.writeTo(wr);
 			}
@@ -227,4 +235,40 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 			return null;
 		}
 	}
+
+	private Void generateLocaleInfoClass(final TerritoryInfo territoryInfo, final Name packageName) {
+		final LocaleInfoClassBuilder builder = LocaleInfoClassBuilder.create(packageName, LOCALE_INFO_CLASS_NAME);
+
+		StreamEx.of(territoryInfo.getTerritory())
+				.flatCollection(CldrSupplementalDataProcessor::toTerritoryLangInfo)
+				.forEach(builder::addLocale);
+
+		TypeSpec spec = builder.build();
+
+		final Builder javaFileBuilder = JavaFile.builder(packageName.toString(), spec).indent("\t");
+		JavaFile javaFile = javaFileBuilder.build();
+
+		try {
+			final JavaFileObject jfo = processingEnv.getFiler().createSourceFile(packageName.toString() + "." + LOCALE_INFO_CLASS_NAME);
+			try (Writer wr = jfo.openWriter()) {
+				javaFile.writeTo(wr);
+			}
+		} catch (final IOException e) {
+			LOGGER.error("Can't generate week info class: {}", e.getMessage(), e);
+		}
+		return null;
+	}
+
+	private static Collection<TerritoryLangInfo> toTerritoryLangInfo(Territory territory) {
+		return StreamEx.of(territory.getLanguagePopulation())
+				.map(LanguagePopulation::getType)
+				.map(lang -> ImmutableTerritoryLangInfo
+						.builder()
+						.territory(territory.getType())
+						.language(lang)
+						.build())
+				.map(TerritoryLangInfo.class::cast)
+				.toList();
+	}
+
 }

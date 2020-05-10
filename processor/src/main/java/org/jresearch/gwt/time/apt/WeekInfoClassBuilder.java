@@ -19,43 +19,38 @@ import com.squareup.javapoet.TypeSpec.Builder;
 
 import one.util.streamex.StreamEx;
 
+/**
+ * <pre>
+ * public class WeekInfo {
+ *
+ * 	public static final Integer DEFAULT_MIN_DAYS = Integer.valueOf(1);
+ * 	public static final DayOfWeek DEFAULT_FIRST_DAY = MONDAY;
+ *
+ * 	public static final Map<Integer, EnumSet<Region>> MIN_DAYS = new HashMap<>();
+ * 	public static final Map<DayOfWeek, EnumSet<Region>> FIRST_DAY = new HashMap<>();
+ *
+ * 	static {
+ * 		MIN_DAYS.put(Integer.valueOf(4), EnumSet.of(AD, AN, AT, AX, BE, BG, CH, CZ, DE, DK, EE, ES, FI, FJ, FO, FR, GB, GF, GG, GI, GP, GR, HU, IE, IM, IS));
+ * 		FIRST_DAY.put(FRIDAY, EnumSet.of(MV));
+ * 		FIRST_DAY.put(SATURDAY, EnumSet.of(AE, AF, BH));
+ * 		FIRST_DAY.put(SUNDAY, EnumSet.of(AG, AS, AU, BD, BR, BS));
+ * 	}
+ *
+ * }
+ * </pre>
+ */
 @SuppressWarnings("nls")
 public class WeekInfoClassBuilder {
-	/**
-	 * <pre>
-	 * public class WeekInfo {
-	 *
-	 * 	public static final Integer DEFAULT_MIN_DAYS = Integer.valueOf(1);
-	 * 	public static final DayOfWeek DEFAULT_FIRST_DAY = MONDAY;
-	 *
-	 * 	public static final Map<Integer, EnumSet<Region>> MIN_DAYS = new HashMap<>();
-	 * 	public static final Map<DayOfWeek, EnumSet<Region>> FIRST_DAY = new HashMap<>();
-	 *
-	 * 	static {
-	 * 		MIN_DAYS.put(Integer.valueOf(4), EnumSet.of(AD, AN, AT, AX, BE, BG, CH, CZ, DE, DK, EE, ES, FI, FJ, FO, FR, GB, GF, GG, GI, GP, GR, HU, IE, IM, IS));
-	 * 		FIRST_DAY.put(FRIDAY, EnumSet.of(MV));
-	 * 		FIRST_DAY.put(SATURDAY, EnumSet.of(AE, AF, BH));
-	 * 		FIRST_DAY.put(SUNDAY, EnumSet.of(AG, AS, AU, BD, BR, BS));
-	 * 	}
-	 *
-	 * }
-	 * </pre>
-	 */
 
-	private final ClassName region;
-	private final ParameterizedTypeName setOfEnum;
-	private final ParameterizedTypeName mapMinDays;
-	private final ParameterizedTypeName mapFirstDay;
 	private final List<ClassName> staticImports;
-
 	private final Builder poetBuilder;
-	private com.squareup.javapoet.CodeBlock.Builder staticInitBlock;
+	private final com.squareup.javapoet.CodeBlock.Builder staticInitBlock;
 
 	private WeekInfoClassBuilder(final CharSequence packageName, final CharSequence className) {
-		region = ClassName.get(packageName.toString(), CldrSupplementalDataProcessor.REGION_ENUM_NAME);
-		setOfEnum = ParameterizedTypeName.get(ClassName.get(EnumSet.class), region);
-		mapMinDays = ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(Integer.class), setOfEnum);
-		mapFirstDay = ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(DayOfWeek.class), setOfEnum);
+		ClassName region = ClassName.get(packageName.toString(), CldrSupplementalDataProcessor.REGION_ENUM_NAME);
+		ParameterizedTypeName setOfEnum = ParameterizedTypeName.get(ClassName.get(EnumSet.class), region);
+		ParameterizedTypeName mapMinDays = ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(Integer.class), setOfEnum);
+		ParameterizedTypeName mapFirstDay = ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(DayOfWeek.class), setOfEnum);
 		staticImports = ImmutableList.of(region, ClassName.get(DayOfWeek.class));
 		staticInitBlock = CodeBlock.builder();
 		FieldSpec minDaysMap = FieldSpec.builder(mapMinDays, "MIN_DAYS", Modifier.PUBLIC, Modifier.FINAL, Modifier.STATIC)
