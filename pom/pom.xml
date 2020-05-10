@@ -1,0 +1,53 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.jresearch</groupId>
+		<artifactId>org.jresearch.pom</artifactId>
+		<version>29-SNAPSHOT</version>
+	</parent>
+	<groupId>org.jresearch.gwt.time</groupId>
+	<artifactId>org.jresearch.gwt.time.apt.pom</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
+	<packaging>pom</packaging>
+	<name>JRESEARCH-COMMONS: GWT time APT POM</name>
+	<description>JRS GWT Time support APT</description>
+	<url>https://github.com/foal/gwt-time-apt</url>
+	<scm>
+		<connection>scm:hg:https://helixteamhub.cloud/JRS/projects/gwtTime/repositories/mercurial/gwt-time-apt</connection>
+		<developerConnection>scm:hg:ssh://hth@helixteamhub.cloud/JRS/projects/gwtTime/repositories/mercurial/gwt-time-apt</developerConnection>
+		<url>https://github.com/foal/gwt-time-apt</url>
+		<tag>HEAD</tag>
+	</scm>
+	<modules>
+		<module>../annotation</module>
+		<module>../processor</module>
+	</modules>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.jresearch.gwt.time</groupId>
+				<artifactId>org.jresearch.gwt.time.apt.annotation</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.jresearch.gwt.time</groupId>
+				<artifactId>org.jresearch.gwt.time.apt.processor</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+	<!-- <build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>11</source>
+					<target>11</target>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build> -->
+</project>
