@@ -24,15 +24,15 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 
 import org.jresearch.gwt.time.apt.annotation.Cldr;
-import org.jresearch.gwt.time.apt.cldr.CodeMappings;
-import org.jresearch.gwt.time.apt.cldr.FirstDay;
-import org.jresearch.gwt.time.apt.cldr.LanguagePopulation;
-import org.jresearch.gwt.time.apt.cldr.MinDays;
-import org.jresearch.gwt.time.apt.cldr.SupplementalData;
-import org.jresearch.gwt.time.apt.cldr.Territory;
-import org.jresearch.gwt.time.apt.cldr.TerritoryCodes;
-import org.jresearch.gwt.time.apt.cldr.TerritoryInfo;
-import org.jresearch.gwt.time.apt.cldr.WeekData;
+import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.CodeMappings;
+import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.FirstDay;
+import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.LanguagePopulation;
+import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.MinDays;
+import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.SupplementalData;
+import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.Territory;
+import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.TerritoryCodes;
+import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.TerritoryInfo;
+import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.WeekData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

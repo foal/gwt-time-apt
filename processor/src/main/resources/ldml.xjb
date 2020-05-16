@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<xml-java-binding-schema>
+	<element name="rbnfrule" type="class">
+		<attribute name="value" property="ruleValue"/>
+	</element>
+</xml-java-binding-schema>

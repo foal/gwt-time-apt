@@ -1,4 +1,6 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.jresearch.gwt.time</groupId>
@@ -87,16 +89,32 @@
 				<artifactId>maven-jaxb2-plugin</artifactId>
 				<version>0.14.0</version>
 				<configuration>
-					<schemaIncludes>
-						<schemaInclude>*.dtd</schemaInclude>
-					</schemaIncludes>
-					<generatePackage>org.jresearch.gwt.time.apt.cldr</generatePackage>
 				</configuration>
 				<executions>
 					<execution>
+						<id>ldmlSupplemental</id>
 						<goals>
 							<goal>generate</goal>
 						</goals>
+						<configuration>
+							<generatePackage>org.jresearch.gwt.time.apt.cldr.ldmlSupplemental</generatePackage>
+							<schemaIncludes>
+								<schemaInclude>ldmlSupplemental.dtd</schemaInclude>
+							</schemaIncludes>
+						</configuration>
+					</execution>
+					<execution>
+						<id>ldml</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<generatePackage>org.jresearch.gwt.time.apt.cldr.ldml</generatePackage>
+
+							<schemaIncludes>
+								<schemaInclude>ldml.dtd</schemaInclude>
+							</schemaIncludes>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>

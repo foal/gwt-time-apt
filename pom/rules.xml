@@ -11,6 +11,6 @@
     		<ignoreVersion type="regex">20041228\.180559</ignoreVersion>
     		<ignoreVersion type="regex">.*jbossorg.*</ignoreVersion>
     		<ignoreVersion type="regex">.*dev.*</ignoreVersion>
-    		<ignoreVersion type="regex">\d+\.\d+</ignoreVersion>
+    
 	</ignoreVersions>
 </ruleset>
