@@ -4,8 +4,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 import javax.lang.model.element.Modifier;
+
+import org.jresearch.gwt.time.apt.cldr.ldml.Identity;
+import org.jresearch.gwt.time.apt.cldr.ldml.Language;
+import org.jresearch.gwt.time.apt.cldr.ldml.Script;
 
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
@@ -14,6 +19,8 @@ import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.TypeSpec.Builder;
+
+import one.util.streamex.StreamEx;
 
 /**
  * <pre>
@@ -60,21 +67,24 @@ public class LocaleInfoClassBuilder {
 		return new LocaleInfoClassBuilder(packageName, className);
 	}
 
-	public LocaleInfoClassBuilder addLocale(final TerritoryLangInfo info) {
-		int langEnd = info.language().indexOf('_');
-		if (langEnd == -1) {
-			return addLocaleInt(info.territory(), info.language());
+	public LocaleInfoClassBuilder addLocale(final Identity info) {
+		Optional<String> language = get(info, Language.class).map(Language::getType);
+		if (language.isPresent()) {
+			String territory = get(info, org.jresearch.gwt.time.apt.cldr.ldml.Territory.class).map(org.jresearch.gwt.time.apt.cldr.ldml.Territory::getType).orElse("");
+			String script = get(info, Script.class).map(Script::getType).orElse("");
+			return addLocaleInt(language.get(), territory, script);
 		}
-		return addLocaleInt(info.territory(), info.language().substring(0, langEnd), info.language().substring(langEnd + 1));
-	}
-
-	private LocaleInfoClassBuilder addLocaleInt(final String territory, final String language) {
-		staticInitBlock.addStatement("LOCALES.add(new $T($S, $S))", Locale.class, territory, language);
 		return this;
 	}
 
-	private LocaleInfoClassBuilder addLocaleInt(final String territory, final String language, final String script) {
-		staticInitBlock.addStatement("LOCALES.add(new $T($S, $S, $S))", Locale.class, territory, language, script);
+	private static <T> Optional<T> get(Identity identity, Class<T> propertyType) {
+		return StreamEx.of(identity.getAliasOrVersionOrGenerationOrLanguageOrScriptOrTerritoryOrVariantOrSpecial())
+				.findAny(o -> propertyType.isAssignableFrom(o.getClass()))
+				.map(propertyType::cast);
+	}
+
+	private LocaleInfoClassBuilder addLocaleInt(final String language, final String territory, final String script) {
+		staticInitBlock.addStatement("LOCALES.add(new $T($S, $S, $S))", Locale.class, language, territory, script);
 		return this;
 	}
 

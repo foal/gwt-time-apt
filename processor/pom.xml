@@ -98,6 +98,9 @@
 						</goals>
 						<configuration>
 							<generatePackage>org.jresearch.gwt.time.apt.cldr.ldmlSupplemental</generatePackage>
+							<bindingIncludes>
+								<bindingInclude>ldmlSupplemental.xjb</bindingInclude>
+							</bindingIncludes>
 							<schemaIncludes>
 								<schemaInclude>ldmlSupplemental.dtd</schemaInclude>
 							</schemaIncludes>
@@ -110,7 +113,9 @@
 						</goals>
 						<configuration>
 							<generatePackage>org.jresearch.gwt.time.apt.cldr.ldml</generatePackage>
-
+							<bindingIncludes>
+								<bindingInclude>ldml.xjb</bindingInclude>
+							</bindingIncludes>
 							<schemaIncludes>
 								<schemaInclude>ldml.dtd</schemaInclude>
 							</schemaIncludes>

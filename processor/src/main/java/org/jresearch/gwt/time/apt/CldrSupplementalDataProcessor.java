@@ -2,7 +2,13 @@ package org.jresearch.gwt.time.apt;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.DayOfWeek;
 import java.util.Collection;
 import java.util.List;
@@ -24,6 +30,7 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 
 import org.jresearch.gwt.time.apt.annotation.Cldr;
+import org.jresearch.gwt.time.apt.cldr.ldml.Ldml;
 import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.CodeMappings;
 import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.FirstDay;
 import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.LanguagePopulation;
@@ -31,12 +38,12 @@ import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.MinDays;
 import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.SupplementalData;
 import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.Territory;
 import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.TerritoryCodes;
-import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.TerritoryInfo;
 import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.WeekData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.auto.service.AutoService;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.JavaFile.Builder;
@@ -55,6 +62,7 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 	private static final Logger LOGGER = LoggerFactory.getLogger(CldrSupplementalDataProcessor.class);
 
 	private static final String CLDR_XML = "supplementalData.xml";
+	private static final String LDML_XML = "root.xml";
 	public static final String REGION_ENUM_NAME = "Region";
 	private static final String WEEK_INFO_CLASS_NAME = "WeekInfo";
 	private static final String LOCALE_INFO_CLASS_NAME = "LocaleInfo";
@@ -91,9 +99,12 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 		supplementalData
 				.map(SupplementalData::getWeekData)
 				.ifPresent(d -> generateWeekInfoClass(d, packageName));
-		supplementalData
-				.map(SupplementalData::getTerritoryInfo)
-				.ifPresent(d -> generateLocaleInfoClass(d, packageName));
+//		supplementalData
+//				.map(SupplementalData::getTerritoryInfo)
+//				.ifPresent(d -> generateLocaleInfoClass(d, packageName));
+		List<Ldml> mainData = loadMainData();
+		generateLocaleInfoClass(mainData, packageName);
+
 	}
 
 	private Void generateTerritoryEnumClass(final List<String> territories, final Name packageName) {
@@ -117,16 +128,48 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 
 	private Optional<SupplementalData> loadSupplementalData() {
 		try {
-			System.setProperty("javax.xml.accessExternalDTD", "all");
 			final URL data = processingEnv
 					.getFiler()
 					.getResource(StandardLocation.CLASS_OUTPUT, "cldr.common.supplemental", CLDR_XML)
 					.toUri()
 					.toURL();
-			JAXBContext context = JAXBContext.newInstance(SupplementalData.class);
-			return Optional.ofNullable((SupplementalData) context.createUnmarshaller().unmarshal(data));
-		} catch (final IOException | JAXBException e) {
+			return load(SupplementalData.class, data);
+		} catch (final IOException e) {
 			LOGGER.error("Can't load CLDR SupplementalData: {}", e.getMessage(), e);
+			return Optional.empty();
+		}
+	}
+
+	private List<Ldml> loadMainData() {
+		try {
+			final URI uri = processingEnv.getFiler()
+					.getResource(StandardLocation.CLASS_OUTPUT, "cldr.common.main", LDML_XML)
+					.toUri();
+			com.google.common.collect.ImmutableList.Builder<Ldml> builder = ImmutableList.builder();
+			Path mainFolder = Paths.get(uri).getParent();
+			try (DirectoryStream<Path> stream = Files.newDirectoryStream(mainFolder, "*.xml")) {
+				for (Path path : stream) {
+					try {
+						load(Ldml.class, path.toUri().toURL()).ifPresent(builder::add);
+					} catch (MalformedURLException e) {
+						LOGGER.error("Can't load data from path {}, skipped. Error: {}", path, e.getMessage(), e);
+					}
+				}
+			}
+			return builder.build();
+		} catch (IOException e) {
+			LOGGER.error("Can't load LDML data. Error: {}", e.getMessage(), e);
+			return ImmutableList.of();
+		}
+	}
+
+	private static <T> Optional<T> load(final Class<T> to, final URL data) {
+		try {
+			System.setProperty("javax.xml.accessExternalDTD", "all");
+			JAXBContext context = JAXBContext.newInstance(to);
+			return Optional.ofNullable(to.cast(context.createUnmarshaller().unmarshal(data)));
+		} catch (JAXBException e) {
+			LOGGER.error("Can't load data from {}: {}", data, e.getMessage(), e);
 			return Optional.empty();
 		} finally {
 			System.clearProperty("javax.xml.accessExternalDTD");
@@ -236,11 +279,11 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 		}
 	}
 
-	private Void generateLocaleInfoClass(final TerritoryInfo territoryInfo, final Name packageName) {
+	private Void generateLocaleInfoClass(final List<Ldml> ldmls, final Name packageName) {
 		final LocaleInfoClassBuilder builder = LocaleInfoClassBuilder.create(packageName, LOCALE_INFO_CLASS_NAME);
 
-		StreamEx.of(territoryInfo.getTerritory())
-				.flatCollection(CldrSupplementalDataProcessor::toTerritoryLangInfo)
+		StreamEx.of(ldmls)
+				.map(Ldml::getIdentity)
 				.forEach(builder::addLocale);
 
 		TypeSpec spec = builder.build();
