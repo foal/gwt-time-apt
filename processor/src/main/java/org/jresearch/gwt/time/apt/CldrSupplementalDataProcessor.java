@@ -10,7 +10,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.DayOfWeek;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -33,10 +32,8 @@ import org.jresearch.gwt.time.apt.annotation.Cldr;
 import org.jresearch.gwt.time.apt.cldr.ldml.Ldml;
 import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.CodeMappings;
 import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.FirstDay;
-import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.LanguagePopulation;
 import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.MinDays;
 import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.SupplementalData;
-import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.Territory;
 import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.TerritoryCodes;
 import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.WeekData;
 import org.slf4j.Logger;
@@ -45,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.JavaFile.Builder;
 import com.squareup.javapoet.TypeSpec;
@@ -55,17 +53,19 @@ import one.util.streamex.StreamEx;
 @SuppressWarnings("nls")
 public class CldrSupplementalDataProcessor extends AbstractProcessor {
 
+	private static final Logger LOGGER = LoggerFactory.getLogger(CldrSupplementalDataProcessor.class);
+
 	private static final String OTHER_TERRITORIES = "001";
 
 	private static final Integer FALBACK_MIN_DAYS = Integer.valueOf(1);
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(CldrSupplementalDataProcessor.class);
-
 	private static final String CLDR_XML = "supplementalData.xml";
 	private static final String LDML_XML = "root.xml";
-	public static final String REGION_ENUM_NAME = "Region";
 	private static final String WEEK_INFO_CLASS_NAME = "WeekInfo";
-	private static final String LOCALE_INFO_CLASS_NAME = "LocaleInfo";
+	static final String LOCALE_INFO_CLASS_NAME = "LocaleInfo";
+	private static final String PATTERN_INFO_CLASS_NAME = "PatternInfo";
+
+	static final String REGION_ENUM_NAME = "Region";
 
 	@Override
 	public Set<String> getSupportedAnnotationTypes() {
@@ -99,35 +99,28 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 		supplementalData
 				.map(SupplementalData::getWeekData)
 				.ifPresent(d -> generateWeekInfoClass(d, packageName));
-//		supplementalData
-//				.map(SupplementalData::getTerritoryInfo)
-//				.ifPresent(d -> generateLocaleInfoClass(d, packageName));
 		List<Ldml> mainData = loadMainData();
 		generateLocaleInfoClass(mainData, packageName);
+		generatePatternInfoClass(mainData, packageName);
 
 	}
 
 	private Void generateTerritoryEnumClass(final List<String> territories, final Name packageName) {
-		final TerritoryEnumBuilder enumBuilder = TerritoryEnumBuilder.create(packageName, REGION_ENUM_NAME);
+		LOGGER.info("Generate territory enum");
+		final TerritoryEnumBuilder enumBuilder = TerritoryEnumBuilder.create(REGION_ENUM_NAME);
 		// Default value - any territory (all world)
 		enumBuilder.addEnumConstant(OTHER_TERRITORIES);
 		territories.forEach(enumBuilder::addEnumConstant);
 		TypeSpec enumSpec = enumBuilder.build();
 
-		final JavaFile javaFile = JavaFile.builder(packageName.toString(), enumSpec).indent("\t").build();
-		try {
-			final JavaFileObject jfo = processingEnv.getFiler().createSourceFile(packageName.toString() + "." + REGION_ENUM_NAME);
-			try (Writer wr = jfo.openWriter()) {
-				javaFile.writeTo(wr);
-			}
-		} catch (final IOException e) {
-			LOGGER.error("Can't generate territory enumeration: {}", e.getMessage(), e);
-		}
+		writeJavaFile(packageName, enumSpec);
 		return null;
 	}
 
 	private Optional<SupplementalData> loadSupplementalData() {
+		LOGGER.info("Load SupplementalData");
 		try {
+			System.setProperty("javax.xml.accessExternalDTD", "all");
 			final URL data = processingEnv
 					.getFiler()
 					.getResource(StandardLocation.CLASS_OUTPUT, "cldr.common.supplemental", CLDR_XML)
@@ -137,46 +130,72 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 		} catch (final IOException e) {
 			LOGGER.error("Can't load CLDR SupplementalData: {}", e.getMessage(), e);
 			return Optional.empty();
+		} finally {
+			System.clearProperty("javax.xml.accessExternalDTD");
 		}
 	}
 
 	private List<Ldml> loadMainData() {
+		LOGGER.info("Load Main data");
 		try {
+			System.setProperty("javax.xml.accessExternalDTD", "all");
 			final URI uri = processingEnv.getFiler()
 					.getResource(StandardLocation.CLASS_OUTPUT, "cldr.common.main", LDML_XML)
 					.toUri();
 			com.google.common.collect.ImmutableList.Builder<Ldml> builder = ImmutableList.builder();
 			Path mainFolder = Paths.get(uri).getParent();
 			try (DirectoryStream<Path> stream = Files.newDirectoryStream(mainFolder, "*.xml")) {
-				for (Path path : stream) {
-					try {
-						load(Ldml.class, path.toUri().toURL()).ifPresent(builder::add);
-					} catch (MalformedURLException e) {
-						LOGGER.error("Can't load data from path {}, skipped. Error: {}", path, e.getMessage(), e);
-					}
-				}
+				JAXBContext context = JAXBContext.newInstance(Ldml.class);
+				StreamEx.of(stream.iterator())
+						.parallel()
+						.map(Path::toUri)
+						.map(u -> loadLdml(context, u))
+						.flatMap(StreamEx::of)
+						.forEach(builder::add);
+			} catch (JAXBException e) {
+				LOGGER.error("Can't load Ldml data: {}", e.getMessage(), e);
 			}
 			return builder.build();
 		} catch (IOException e) {
 			LOGGER.error("Can't load LDML data. Error: {}", e.getMessage(), e);
 			return ImmutableList.of();
-		}
-	}
-
-	private static <T> Optional<T> load(final Class<T> to, final URL data) {
-		try {
-			System.setProperty("javax.xml.accessExternalDTD", "all");
-			JAXBContext context = JAXBContext.newInstance(to);
-			return Optional.ofNullable(to.cast(context.createUnmarshaller().unmarshal(data)));
-		} catch (JAXBException e) {
-			LOGGER.error("Can't load data from {}: {}", data, e.getMessage(), e);
-			return Optional.empty();
 		} finally {
 			System.clearProperty("javax.xml.accessExternalDTD");
 		}
 	}
 
+	private static Optional<Ldml> loadLdml(JAXBContext context, final URI data) {
+		try {
+			return loadLdml(context, data.toURL());
+		} catch (MalformedURLException e) {
+			LOGGER.error("Can't load data from path {}, skipped. Error: {}", data, e.getMessage(), e);
+			return Optional.empty();
+		}
+	}
+
+	private static Optional<Ldml> loadLdml(JAXBContext context, final URL data) {
+		LOGGER.info("Process {}", data);
+		try {
+			return Optional.of(Ldml.class.cast(context.createUnmarshaller().unmarshal(data)));
+		} catch (JAXBException e) {
+			LOGGER.error("Can't load data from {}: {}", data, e.getMessage(), e);
+			return Optional.empty();
+		}
+	}
+
+	private static <T> Optional<T> load(final Class<T> to, final URL data) {
+		LOGGER.info("Process {}", data);
+		try {
+			JAXBContext context = JAXBContext.newInstance(to);
+			return Optional.of(to.cast(context.createUnmarshaller().unmarshal(data)));
+		} catch (JAXBException e) {
+			LOGGER.error("Can't load data from {}: {}", data, e.getMessage(), e);
+			return Optional.empty();
+		}
+	}
+
 	private Void generateWeekInfoClass(final WeekData weekData, final Name packageName) {
+		LOGGER.info("Generate week info");
 		final WeekInfoClassBuilder builder = WeekInfoClassBuilder.create(packageName, WEEK_INFO_CLASS_NAME);
 		DayOfWeek firstDay = StreamEx.of(weekData.getFirstDay())
 				.filter(CldrSupplementalDataProcessor::isDefault)
@@ -215,18 +234,8 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 
 		TypeSpec spec = builder.build();
 
-		final Builder javaFileBuilder = JavaFile.builder(packageName.toString(), spec).indent("\t");
-		builder.getStaticImports().forEach(c -> javaFileBuilder.addStaticImport(c, "*"));
-		JavaFile javaFile = javaFileBuilder.build();
+		writeJavaFile(packageName, spec, builder.getStaticImports());
 
-		try {
-			final JavaFileObject jfo = processingEnv.getFiler().createSourceFile(packageName.toString() + "." + WEEK_INFO_CLASS_NAME);
-			try (Writer wr = jfo.openWriter()) {
-				javaFile.writeTo(wr);
-			}
-		} catch (final IOException e) {
-			LOGGER.error("Can't generate week info class: {}", e.getMessage(), e);
-		}
 		return null;
 	}
 
@@ -280,6 +289,9 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 	}
 
 	private Void generateLocaleInfoClass(final List<Ldml> ldmls, final Name packageName) {
+
+		LOGGER.info("Generate locale info");
+
 		final LocaleInfoClassBuilder builder = LocaleInfoClassBuilder.create(packageName, LOCALE_INFO_CLASS_NAME);
 
 		StreamEx.of(ldmls)
@@ -288,30 +300,44 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 
 		TypeSpec spec = builder.build();
 
+		writeJavaFile(packageName, spec);
+
+		return null;
+	}
+
+	private Void generatePatternInfoClass(final List<Ldml> ldmls, final Name packageName) {
+
+		LOGGER.info("Generate pattern info");
+
+		final PatternInfoClassBuilder builder = PatternInfoClassBuilder.create(packageName, PATTERN_INFO_CLASS_NAME);
+
+		ldmls.forEach(builder::updatePatternInfoClass);
+
+		TypeSpec spec = builder.build();
+
+		writeJavaFile(packageName, spec, builder.getStaticImports());
+
+		return null;
+	}
+
+	private void writeJavaFile(final Name packageName, TypeSpec spec) {
+		writeJavaFile(packageName, spec, ImmutableList.of());
+	}
+
+	private void writeJavaFile(final Name packageName, TypeSpec spec, List<ClassName> staticImports) {
+
 		final Builder javaFileBuilder = JavaFile.builder(packageName.toString(), spec).indent("\t");
+		staticImports.forEach(i -> javaFileBuilder.addStaticImport(i, "*"));
 		JavaFile javaFile = javaFileBuilder.build();
 
 		try {
-			final JavaFileObject jfo = processingEnv.getFiler().createSourceFile(packageName.toString() + "." + LOCALE_INFO_CLASS_NAME);
+			final JavaFileObject jfo = processingEnv.getFiler().createSourceFile(packageName.toString() + "." + spec.name);
 			try (Writer wr = jfo.openWriter()) {
 				javaFile.writeTo(wr);
 			}
 		} catch (final IOException e) {
-			LOGGER.error("Can't generate week info class: {}", e.getMessage(), e);
+			LOGGER.error("Can't write class {} to package {}: {}", spec, packageName, e.getMessage(), e);
 		}
-		return null;
-	}
-
-	private static Collection<TerritoryLangInfo> toTerritoryLangInfo(Territory territory) {
-		return StreamEx.of(territory.getLanguagePopulation())
-				.map(LanguagePopulation::getType)
-				.map(lang -> ImmutableTerritoryLangInfo
-						.builder()
-						.territory(territory.getType())
-						.language(lang)
-						.build())
-				.map(TerritoryLangInfo.class::cast)
-				.toList();
 	}
 
 }

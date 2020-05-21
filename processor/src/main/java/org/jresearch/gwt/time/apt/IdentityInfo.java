@@ -3,10 +3,12 @@ package org.jresearch.gwt.time.apt;
 import org.immutables.value.Value.Immutable;
 
 @Immutable
-public interface TerritoryLangInfo {
+public interface IdentityInfo {
+
+	String language();
 
 	String territory();
 
-	String language();
+	String script();
 
 }

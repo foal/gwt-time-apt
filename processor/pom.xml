@@ -104,6 +104,7 @@
 							<schemaIncludes>
 								<schemaInclude>ldmlSupplemental.dtd</schemaInclude>
 							</schemaIncludes>
+							<generateDirectory>${project.build.directory}/generated-sources/xjc-ldmlSupplemental</generateDirectory>
 						</configuration>
 					</execution>
 					<execution>
@@ -119,6 +120,7 @@
 							<schemaIncludes>
 								<schemaInclude>ldml.dtd</schemaInclude>
 							</schemaIncludes>
+							<generateDirectory>${project.build.directory}/generated-sources/xjc-ldml</generateDirectory>
 						</configuration>
 					</execution>
 				</executions>

@@ -3,7 +3,6 @@ package org.jresearch.gwt.time.apt;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Modifier;
 
-import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.TypeSpec.Builder;
 
@@ -16,15 +15,14 @@ public class TerritoryEnumBuilder {
 	 */
 	private final Builder poetBuilder;
 
-	private TerritoryEnumBuilder(final ClassName enumName) {
+	private TerritoryEnumBuilder(final String enumName) {
 		poetBuilder = TypeSpec
 				.enumBuilder(enumName)
 				.addModifiers(Modifier.PUBLIC, Modifier.STATIC);
 	}
 
-	public static TerritoryEnumBuilder create(final CharSequence packageName, final CharSequence enumName) {
-		final ClassName enumClassName = ClassName.get(packageName.toString(), enumName.toString());
-		return new TerritoryEnumBuilder(enumClassName);
+	public static TerritoryEnumBuilder create(final CharSequence enumName) {
+		return new TerritoryEnumBuilder(enumName.toString());
 	}
 
 	public TerritoryEnumBuilder addEnumConstant(final String territoriType) {
