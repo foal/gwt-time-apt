@@ -1,19 +1,15 @@
 package org.jresearch.gwt.time.apt;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Locale;
 
 import javax.lang.model.element.Modifier;
 
 import org.jresearch.gwt.time.apt.cldr.ldml.Identity;
 
+import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
-import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.TypeSpec.Builder;
 
@@ -23,15 +19,7 @@ import com.squareup.javapoet.TypeSpec.Builder;
  *
  * 	public static final Locale AF = new Locale("af", "", "");
  *
- * 	private static final List<Locale> LOCALES = new ArrayList<>();
- *
- * 	static {
- * 		LOCALES.add(AF);
- * 	}
- *
- * 	public static List<Locale> getAvailable() {
- * 		return Collections.unmodifiableList(LOCALES);
- * 	}
+ * 	public static final Locale[] LOCALES = new Locale[] { AF };
  *
  * }
  * </pre>
@@ -40,24 +28,16 @@ import com.squareup.javapoet.TypeSpec.Builder;
 public class LocaleInfoClassBuilder {
 
 	private final Builder poetBuilder;
-	private final com.squareup.javapoet.CodeBlock.Builder staticInitBlock;
+	private com.squareup.javapoet.FieldSpec.Builder localeArray;
+	private com.squareup.javapoet.CodeBlock.Builder initializer;
 
 	private LocaleInfoClassBuilder(final CharSequence packageName, final CharSequence className) {
-		ParameterizedTypeName list = ParameterizedTypeName.get(List.class, Locale.class);
-		staticInitBlock = CodeBlock.builder();
-		FieldSpec localeList = FieldSpec.builder(list, "LOCALES", Modifier.PRIVATE, Modifier.FINAL, Modifier.STATIC)
-				.initializer("new $T<>()", ArrayList.class)
-				.build();
-		MethodSpec getAvailable = MethodSpec.methodBuilder("getAvailable")
-				.addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-				.returns(list)
-				.addStatement("return $T.unmodifiableList(LOCALES)", Collections.class)
-				.build();
+		ArrayTypeName array = ArrayTypeName.of(Locale.class);
+		localeArray = FieldSpec.builder(array, "LOCALES", Modifier.PUBLIC, Modifier.FINAL, Modifier.STATIC);
+		initializer = CodeBlock.builder().add("new $T[] {", Locale.class);
 		poetBuilder = TypeSpec
 				.classBuilder(ClassName.get(packageName.toString(), className.toString()))
-				.addModifiers(Modifier.PUBLIC)
-				.addField(localeList)
-				.addMethod(getAvailable);
+				.addModifiers(Modifier.PUBLIC);
 	}
 
 	public static LocaleInfoClassBuilder create(final CharSequence packageName, final CharSequence className) {
@@ -81,13 +61,17 @@ public class LocaleInfoClassBuilder {
 	}
 
 	private LocaleInfoClassBuilder addLocaleInt(final String localeField) {
-		staticInitBlock.addStatement("LOCALES.add($L)", localeField);
+		initializer.add("$L,", localeField);
 		return this;
 	}
 
 	public TypeSpec build() {
 		return poetBuilder
-				.addStaticBlock(staticInitBlock.build())
+				.addField(localeArray
+						.initializer(initializer
+								.add("}")
+								.build())
+						.build())
 				.build();
 	}
 
