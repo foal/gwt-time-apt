@@ -11,4 +11,6 @@ public interface IdentityInfo {
 
 	String script();
 
+	String variant();
+
 }

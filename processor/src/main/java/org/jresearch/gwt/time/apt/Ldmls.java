@@ -42,12 +42,13 @@ public class Ldmls {
 		Optional<String> language = get(identity, Language.class).map(Language::getType);
 		if (language.isPresent()) {
 			String territory = get(identity, Territory.class).map(Territory::getType).orElse("");
-			String script = get(identity, Script.class).map(Script::getType)
-					.orElseGet(() -> get(identity, Variant.class).map(Variant::getType).orElse(""));
+			String script = get(identity, Script.class).map(Script::getType).orElse("");
+			String variant = get(identity, Variant.class).map(Variant::getType).orElse("");
 			return Optional.of(ImmutableIdentityInfo.builder()
 					.language(language.get())
 					.territory(territory)
 					.script(script)
+					.variant(variant)
 					.build());
 		}
 		return Optional.empty();
@@ -139,7 +140,7 @@ public class Ldmls {
 	}
 
 	public static String createName(final IdentityInfo info) {
-		return StreamEx.of(info.language(), info.territory(), info.script())
+		return StreamEx.of(info.language(), info.script(), info.territory(), info.variant())
 				.remove(String::isEmpty)
 				.map(String::toUpperCase)
 				.joining("_");

@@ -17,7 +17,7 @@ import com.squareup.javapoet.TypeSpec.Builder;
  * <pre>
  * public class LocaleInfo {
  *
- * 	public static final Locale AF = new Locale("af", "", "");
+ * 	public static final Locale AF = Locales.create("af", "", "", "");
  *
  * 	public static final Locale[] LOCALES = new Locale[] { AF };
  *
@@ -30,6 +30,7 @@ public class LocaleInfoClassBuilder {
 	private final Builder poetBuilder;
 	private com.squareup.javapoet.FieldSpec.Builder localeArray;
 	private com.squareup.javapoet.CodeBlock.Builder initializer;
+	private ClassName localeUtil = ClassName.get("org.jresearch.threetenbp.gwt.client.locale", "Locales");
 
 	private LocaleInfoClassBuilder(final CharSequence packageName, final CharSequence className) {
 		ArrayTypeName array = ArrayTypeName.of(Locale.class);
@@ -51,13 +52,13 @@ public class LocaleInfoClassBuilder {
 	}
 
 	public LocaleInfoClassBuilder addLocale(final IdentityInfo info) {
-			// add public static final Locale AF = new Locale("af", "", "");
+		// add public static final Locale AF = Locales.create("af", "", "", "");
 		String fieldName = Ldmls.createName(info);
-			FieldSpec locale = FieldSpec.builder(Locale.class, fieldName, Modifier.PUBLIC, Modifier.FINAL, Modifier.STATIC)
-				.initializer("new $T($S, $S, $S)", Locale.class, info.language(), info.territory(), info.script())
-					.build();
-			poetBuilder.addField(locale);
-			return addLocaleInt(fieldName);
+		FieldSpec locale = FieldSpec.builder(Locale.class, fieldName, Modifier.PUBLIC, Modifier.FINAL, Modifier.STATIC)
+				.initializer("$T.create($S, $S, $S, $S)", localeUtil, info.language(), info.territory(), info.script(), info.variant())
+				.build();
+		poetBuilder.addField(locale);
+		return addLocaleInt(fieldName);
 	}
 
 	private LocaleInfoClassBuilder addLocaleInt(final String localeField) {
