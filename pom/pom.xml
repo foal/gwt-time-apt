@@ -7,7 +7,7 @@
 	</parent>
 	<groupId>org.jresearch.gwt.time</groupId>
 	<artifactId>org.jresearch.gwt.time.apt.pom</artifactId>
-	<version>1.0.6</version>
+	<version>1.0.7-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>JRESEARCH-COMMONS: GWT time APT POM</name>
 	<description>JRS GWT Time support APT</description>
@@ -16,7 +16,7 @@
 		<connection>scm:hg:https://helixteamhub.cloud/JRS/projects/gwtTime/repositories/mercurial/gwt-time-apt</connection>
 		<developerConnection>scm:hg:ssh://hth@helixteamhub.cloud/JRS/projects/gwtTime/repositories/mercurial/gwt-time-apt</developerConnection>
 		<url>https://github.com/foal/gwt-time-apt</url>
-		<tag>1.0.6</tag>
+		<tag>HEAD</tag>
 	</scm>
 	<modules>
 		<module>../annotation</module>
