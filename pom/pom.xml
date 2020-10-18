@@ -24,6 +24,12 @@
 		<module>../annotation</module>
 		<module>../processor</module>
 	</modules>
+	<properties>
+		<gwt.version>2.9.0</gwt.version>
+		<elemental.ver>1.1.0</elemental.ver>
+		<jsinterop-annotations.ver>2.0.0</jsinterop-annotations.ver>
+		<jsinterop-base.ver>1.0.0</jsinterop-base.ver>
+	</properties>
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
