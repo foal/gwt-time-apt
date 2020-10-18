@@ -7,7 +7,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 
+import javax.annotation.processing.Messager;
 import javax.lang.model.element.Modifier;
+import javax.tools.Diagnostic.Kind;
 
 import org.jresearch.gwt.time.apt.base.Bases;
 import org.jresearch.gwt.time.apt.base.Chrono;
@@ -27,8 +29,6 @@ import org.jresearch.gwt.time.apt.cldr.ldml.Pattern;
 import org.jresearch.gwt.time.apt.cldr.ldml.TimeFormat;
 import org.jresearch.gwt.time.apt.cldr.ldml.TimeFormatLength;
 import org.jresearch.gwt.time.apt.cldr.ldml.TimeFormats;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -72,8 +72,6 @@ import one.util.streamex.StreamEx;
 @SuppressWarnings("nls")
 public class PatternInfoClassBuilder {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(PatternInfoClassBuilder.class);
-
 	private final static List<String> IGNORED_PATTERNS = ImmutableList.of("↑↑↑");
 	private final static java.util.regex.Pattern ALIAS_PATTERN = java.util.regex.Pattern.compile("\\.\\.\\/\\.\\.\\/calendar\\[@type='(.*)'");
 
@@ -97,7 +95,10 @@ public class PatternInfoClassBuilder {
 	public final ListMultimap<String, AptPatternCoordinates> timeMediumPatterns = ArrayListMultimap.create();
 	public final ListMultimap<String, AptPatternCoordinates> timeShortPatterns = ArrayListMultimap.create();
 
-	private PatternInfoClassBuilder(final CharSequence packageName, final CharSequence className) {
+	private final Messager messager;
+
+	private PatternInfoClassBuilder(Messager messager, final CharSequence packageName, final CharSequence className) {
+		this.messager = messager;
 		ArrayTypeName coordinates = ArrayTypeName.of(ClassName.get(packageName.toString(), "PatternCoordinates"));
 		ParameterizedTypeName map = ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(String.class), coordinates);
 
@@ -126,8 +127,8 @@ public class PatternInfoClassBuilder {
 				.build();
 	}
 
-	public static PatternInfoClassBuilder create(final CharSequence packageName, final CharSequence className) {
-		return new PatternInfoClassBuilder(packageName, className);
+	public static PatternInfoClassBuilder create(final Messager messager, final CharSequence packageName, final CharSequence className) {
+		return new PatternInfoClassBuilder(messager, packageName, className);
 	}
 
 	public PatternInfoClassBuilder updatePatternInfoClass(Ldml ldml) {
@@ -165,6 +166,7 @@ public class PatternInfoClassBuilder {
 	private PatternProvider to(Calendars calendars, DateFormats dateFormats) {
 		List<DateFormatLength> formats = getDateFormats(calendars, dateFormats);
 		return new PatternProvider() {
+			@SuppressWarnings("resource")
 			@Override
 			public Optional<String> getPattern(FormatStyle formatStyle) {
 				return StreamEx.of(formats)
@@ -180,6 +182,7 @@ public class PatternInfoClassBuilder {
 	private PatternProvider to(Calendars calendars, TimeFormats timeFormats) {
 		List<TimeFormatLength> formats = getTimeFormats(calendars, timeFormats);
 		return new PatternProvider() {
+			@SuppressWarnings("resource")
 			@Override
 			public Optional<String> getPattern(FormatStyle formatStyle) {
 				return StreamEx.of(formats)
@@ -195,6 +198,7 @@ public class PatternInfoClassBuilder {
 	private PatternProvider to(Calendars calendars, DateTimeFormats dateFormats) {
 		List<DateTimeFormatLength> formats = getDateTimeFormats(calendars, dateFormats);
 		return new PatternProvider() {
+			@SuppressWarnings("resource")
 			@Override
 			public Optional<String> getPattern(FormatStyle formatStyle) {
 				return StreamEx.of(formats)
@@ -207,6 +211,7 @@ public class PatternInfoClassBuilder {
 		};
 	}
 
+	@SuppressWarnings("resource")
 	private List<TimeFormatLength> getTimeFormats(Calendars calendars, TimeFormats timeFormats) {
 		List<TimeFormatLength> result = Ldmls.getAll(timeFormats, TimeFormatLength.class);
 		// if no result check for alias
@@ -227,6 +232,7 @@ public class PatternInfoClassBuilder {
 		return result;
 	}
 
+	@SuppressWarnings("resource")
 	private List<DateFormatLength> getDateFormats(Calendars calendars, DateFormats dateFormats) {
 		List<DateFormatLength> result = Ldmls.getAll(dateFormats, DateFormatLength.class);
 		// if no result check for alias
@@ -247,6 +253,7 @@ public class PatternInfoClassBuilder {
 		return result;
 	}
 
+	@SuppressWarnings("resource")
 	private List<DateTimeFormatLength> getDateTimeFormats(Calendars calendars, DateTimeFormats dateTimeFormats) {
 		List<DateTimeFormatLength> result = Ldmls.getAll(dateTimeFormats, DateTimeFormatLength.class);
 		// if no result check for alias
@@ -267,6 +274,7 @@ public class PatternInfoClassBuilder {
 		return result;
 	}
 
+	@SuppressWarnings("resource")
 	private void updatePatternInfoClass(String localeName, Chrono chrono, PatternType patternType, PatternProvider provider) {
 		StreamEx.of(FormatStyle.values())
 				.mapToEntry(provider::getPattern)
@@ -359,7 +367,7 @@ public class PatternInfoClassBuilder {
 	}
 
 	private void generatePatterns(ListMultimap<String, AptPatternCoordinates> map, String mapName) {
-		LOGGER.info("Generate {} init", mapName);
+		messager.printMessage(Kind.NOTE, String.format("Generate %s init", mapName));
 		map.keySet().forEach(p -> generatePatterns(map, mapName, p));
 	}
 

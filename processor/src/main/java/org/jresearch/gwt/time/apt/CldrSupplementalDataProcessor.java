@@ -23,6 +23,7 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
+import javax.tools.Diagnostic.Kind;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardLocation;
 import javax.xml.bind.JAXBContext;
@@ -36,8 +37,6 @@ import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.MinDays;
 import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.SupplementalData;
 import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.TerritoryCodes;
 import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.WeekData;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableList;
@@ -53,7 +52,7 @@ import one.util.streamex.StreamEx;
 @SuppressWarnings("nls")
 public class CldrSupplementalDataProcessor extends AbstractProcessor {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(CldrSupplementalDataProcessor.class);
+//	private static final Logger LOGGER = LoggerFactory.getLogger(CldrSupplementalDataProcessor.class);
 
 	private static final String OTHER_TERRITORIES = "001";
 
@@ -77,6 +76,7 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 		return SourceVersion.latestSupported();
 	}
 
+	@SuppressWarnings("resource")
 	@Override
 	public boolean process(final Set<? extends TypeElement> annotations, final RoundEnvironment roundEnv) {
 		// get first available annotated package and ignore others
@@ -88,6 +88,7 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 		return true;
 	}
 
+	@SuppressWarnings("resource")
 	private void generateCldrData(final PackageElement annotatedPackage) {
 		Name packageName = annotatedPackage.getQualifiedName();
 		Optional<SupplementalData> supplementalData = loadSupplementalData();
@@ -106,7 +107,7 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 	}
 
 	private Void generateTerritoryEnumClass(final List<String> territories, final Name packageName) {
-		LOGGER.info("Generate territory enum");
+		processingEnv.getMessager().printMessage(Kind.NOTE, "Generate territory enum");
 		final TerritoryEnumBuilder enumBuilder = TerritoryEnumBuilder.create(REGION_ENUM_NAME);
 		// Default value - any territory (all world)
 		enumBuilder.addEnumConstant(OTHER_TERRITORIES);
@@ -118,7 +119,7 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 	}
 
 	private Optional<SupplementalData> loadSupplementalData() {
-		LOGGER.info("Load SupplementalData");
+		processingEnv.getMessager().printMessage(Kind.NOTE, "Load SupplementalData");
 		try {
 			System.setProperty("javax.xml.accessExternalDTD", "all");
 			final URL data = processingEnv
@@ -126,17 +127,18 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 					.getResource(StandardLocation.CLASS_OUTPUT, "cldr.common.supplemental", CLDR_XML)
 					.toUri()
 					.toURL();
-			return load(SupplementalData.class, data);
+			return loadSupplementalData(data);
 		} catch (final IOException e) {
-			LOGGER.error("Can't load CLDR SupplementalData: {}", e.getMessage(), e);
+			processingEnv.getMessager().printMessage(Kind.ERROR, String.format("Can't load CLDR SupplementalData: %s", e.getMessage()));
 			return Optional.empty();
 		} finally {
 			System.clearProperty("javax.xml.accessExternalDTD");
 		}
 	}
 
+	@SuppressWarnings("resource")
 	private List<Ldml> loadMainData() {
-		LOGGER.info("Load Main data");
+		processingEnv.getMessager().printMessage(Kind.NOTE, "Load Main data");
 		try {
 			System.setProperty("javax.xml.accessExternalDTD", "all");
 			final URI uri = processingEnv.getFiler()
@@ -145,7 +147,7 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 			com.google.common.collect.ImmutableList.Builder<Ldml> builder = ImmutableList.builder();
 			Path mainFolder = Paths.get(uri).getParent();
 			try (DirectoryStream<Path> stream = Files.newDirectoryStream(mainFolder, "*.xml")) {
-				JAXBContext context = JAXBContext.newInstance(Ldml.class);
+				JAXBContext context = JAXBContext.newInstance(Ldml.class.getPackageName(), JAXBContext.class.getClassLoader());
 				StreamEx.of(stream.iterator())
 						.parallel()
 						.map(Path::toUri)
@@ -153,49 +155,50 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 						.flatMap(StreamEx::of)
 						.forEach(builder::add);
 			} catch (JAXBException e) {
-				LOGGER.error("Can't load Ldml data: {}", e.getMessage(), e);
+				processingEnv.getMessager().printMessage(Kind.ERROR, String.format("Can't load Ldml data: %s", e.getMessage()));
 			}
 			return builder.build();
 		} catch (IOException e) {
-			LOGGER.error("Can't load LDML data. Error: {}", e.getMessage(), e);
+			processingEnv.getMessager().printMessage(Kind.ERROR, String.format("Can't load LDML data. Error: {}", e.getMessage()));
 			return ImmutableList.of();
 		} finally {
 			System.clearProperty("javax.xml.accessExternalDTD");
 		}
 	}
 
-	private static Optional<Ldml> loadLdml(JAXBContext context, final URI data) {
+	private Optional<Ldml> loadLdml(JAXBContext context, final URI data) {
 		try {
 			return loadLdml(context, data.toURL());
 		} catch (MalformedURLException e) {
-			LOGGER.error("Can't load data from path {}, skipped. Error: {}", data, e.getMessage(), e);
+			processingEnv.getMessager().printMessage(Kind.ERROR, String.format("Can't load data from path %s, skipped. Error: %s", data, e.getMessage()));
 			return Optional.empty();
 		}
 	}
 
-	private static Optional<Ldml> loadLdml(JAXBContext context, final URL data) {
-		LOGGER.info("Process {}", data);
+	private Optional<Ldml> loadLdml(JAXBContext context, final URL data) {
+		processingEnv.getMessager().printMessage(Kind.NOTE, String.format("Process %s", data));
 		try {
 			return Optional.of(Ldml.class.cast(context.createUnmarshaller().unmarshal(data)));
 		} catch (JAXBException e) {
-			LOGGER.error("Can't load data from {}: {}", data, e.getMessage(), e);
+			processingEnv.getMessager().printMessage(Kind.ERROR, String.format("Can't load data from %s: %s", data, e.getMessage()));
 			return Optional.empty();
 		}
 	}
 
-	private static <T> Optional<T> load(final Class<T> to, final URL data) {
-		LOGGER.info("Process {}", data);
+	private Optional<SupplementalData> loadSupplementalData(final URL data) {
+		processingEnv.getMessager().printMessage(Kind.NOTE, String.format("Process %s", data));
 		try {
-			JAXBContext context = JAXBContext.newInstance(to);
-			return Optional.of(to.cast(context.createUnmarshaller().unmarshal(data)));
+			JAXBContext context = JAXBContext.newInstance(SupplementalData.class.getPackageName(), JAXBContext.class.getClassLoader());
+			return Optional.of((SupplementalData) context.createUnmarshaller().unmarshal(data));
 		} catch (JAXBException e) {
-			LOGGER.error("Can't load data from {}: {}", data, e.getMessage(), e);
+			processingEnv.getMessager().printMessage(Kind.ERROR, String.format("Can't load data from %s: %s", data, e.getMessage()));
 			return Optional.empty();
 		}
 	}
 
+	@SuppressWarnings("resource")
 	private Void generateWeekInfoClass(final WeekData weekData, final Name packageName) {
-		LOGGER.info("Generate week info");
+		processingEnv.getMessager().printMessage(Kind.NOTE, "Generate week info");
 		final WeekInfoClassBuilder builder = WeekInfoClassBuilder.create(packageName, WEEK_INFO_CLASS_NAME);
 		DayOfWeek firstDay = StreamEx.of(weekData.getFirstDay())
 				.filter(CldrSupplementalDataProcessor::isDefault)
@@ -288,9 +291,10 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 		}
 	}
 
+	@SuppressWarnings("resource")
 	private Void generateLocaleInfoClass(final List<Ldml> ldmls, final Name packageName) {
 
-		LOGGER.info("Generate locale info");
+		processingEnv.getMessager().printMessage(Kind.NOTE, "Generate locale info");
 
 		final LocaleInfoClassBuilder builder = LocaleInfoClassBuilder.create(packageName, LOCALE_INFO_CLASS_NAME);
 
@@ -307,9 +311,9 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 
 	private Void generatePatternInfoClass(final List<Ldml> ldmls, final Name packageName) {
 
-		LOGGER.info("Generate pattern info");
+		processingEnv.getMessager().printMessage(Kind.NOTE, "Generate pattern info");
 
-		final PatternInfoClassBuilder builder = PatternInfoClassBuilder.create(packageName, PATTERN_INFO_CLASS_NAME);
+		final PatternInfoClassBuilder builder = PatternInfoClassBuilder.create(processingEnv.getMessager(), packageName, PATTERN_INFO_CLASS_NAME);
 
 		ldmls.forEach(builder::updatePatternInfoClass);
 
@@ -336,7 +340,7 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 				javaFile.writeTo(wr);
 			}
 		} catch (final IOException e) {
-			LOGGER.error("Can't write class {} to package {}: {}", spec, packageName, e.getMessage(), e);
+			processingEnv.getMessager().printMessage(Kind.ERROR, String.format("Can't write class %s to package %s: %s", spec, packageName, e.getMessage()));
 		}
 	}
 
