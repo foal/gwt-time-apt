@@ -147,7 +147,7 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 			com.google.common.collect.ImmutableList.Builder<Ldml> builder = ImmutableList.builder();
 			Path mainFolder = Paths.get(uri).getParent();
 			try (DirectoryStream<Path> stream = Files.newDirectoryStream(mainFolder, "*.xml")) {
-				JAXBContext context = JAXBContext.newInstance(Ldml.class.getPackage().getName(), JAXBContext.class.getClassLoader());
+				JAXBContext context = JAXBContext.newInstance(Ldml.class);
 				StreamEx.of(stream.iterator())
 						.parallel()
 						.map(Path::toUri)
@@ -188,7 +188,7 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 	private Optional<SupplementalData> loadSupplementalData(final URL data) {
 		processingEnv.getMessager().printMessage(Kind.NOTE, String.format("Process %s", data));
 		try {
-			JAXBContext context = JAXBContext.newInstance(SupplementalData.class.getPackage().getName(), JAXBContext.class.getClassLoader());
+			JAXBContext context = JAXBContext.newInstance(SupplementalData.class);
 			return Optional.of((SupplementalData) context.createUnmarshaller().unmarshal(data));
 		} catch (JAXBException e) {
 			processingEnv.getMessager().printMessage(Kind.ERROR, String.format("Can't load data from %s: %s", data, e.getMessage()));
