@@ -30,7 +30,7 @@ public class LocaleInfoClassBuilder {
 	private final Builder poetBuilder;
 	private com.squareup.javapoet.FieldSpec.Builder localeArray;
 	private com.squareup.javapoet.CodeBlock.Builder initializer;
-	private ClassName localeUtil = ClassName.get("org.jresearch.threetenbp.gwt.client.locale", "Locales");
+	private ClassName localeUtil = ClassName.get("org.jresearch.gwt.locale.client.locale", "Locales");
 
 	private LocaleInfoClassBuilder(final CharSequence packageName, final CharSequence className) {
 		ArrayTypeName array = ArrayTypeName.of(Locale.class);
