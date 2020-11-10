@@ -29,7 +29,8 @@ import javax.tools.StandardLocation;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 
-import org.jresearch.gwt.time.apt.annotation.Cldr;
+import org.jresearch.gwt.time.apt.annotation.CldrLocale;
+import org.jresearch.gwt.time.apt.annotation.CldrTime;
 import org.jresearch.gwt.time.apt.cldr.ldml.Ldml;
 import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.CodeMappings;
 import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.FirstDay;
@@ -68,7 +69,7 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 
 	@Override
 	public Set<String> getSupportedAnnotationTypes() {
-		return ImmutableSet.of(Cldr.class.getName());
+		return ImmutableSet.of(CldrLocale.class.getName(), CldrTime.class.getName());
 	}
 
 	@Override
@@ -80,16 +81,22 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 	@Override
 	public boolean process(final Set<? extends TypeElement> annotations, final RoundEnvironment roundEnv) {
 		// get first available annotated package and ignore others
-		StreamEx.of(roundEnv.getElementsAnnotatedWith(Cldr.class))
+		StreamEx.of(roundEnv.getElementsAnnotatedWith(CldrTime.class))
 				.filterBy(Element::getKind, ElementKind.PACKAGE)
 				.findAny()
 				.map(PackageElement.class::cast)
-				.ifPresent(this::generateCldrData);
+				.ifPresent(this::generateCldrTimeData);
+		// get first available annotated package and ignore others
+		StreamEx.of(roundEnv.getElementsAnnotatedWith(CldrLocale.class))
+				.filterBy(Element::getKind, ElementKind.PACKAGE)
+				.findAny()
+				.map(PackageElement.class::cast)
+				.ifPresent(this::generateCldrLocaleData);
 		return true;
 	}
 
 	@SuppressWarnings("resource")
-	private void generateCldrData(final PackageElement annotatedPackage) {
+	private void generateCldrTimeData(final PackageElement annotatedPackage) {
 		Name packageName = annotatedPackage.getQualifiedName();
 		Optional<SupplementalData> supplementalData = loadSupplementalData();
 		StreamEx.of(supplementalData)
@@ -101,9 +108,13 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 				.map(SupplementalData::getWeekData)
 				.ifPresent(d -> generateWeekInfoClass(d, packageName));
 		List<Ldml> mainData = loadMainData();
-		generateLocaleInfoClass(mainData, packageName);
 		generatePatternInfoClass(mainData, packageName);
+	}
 
+	private void generateCldrLocaleData(final PackageElement annotatedPackage) {
+		Name packageName = annotatedPackage.getQualifiedName();
+		List<Ldml> mainData = loadMainData();
+		generateLocaleInfoClass(mainData, packageName);
 	}
 
 	private Void generateTerritoryEnumClass(final List<String> territories, final Name packageName) {

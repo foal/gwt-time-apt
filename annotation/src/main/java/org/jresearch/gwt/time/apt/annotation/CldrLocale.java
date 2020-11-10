@@ -9,5 +9,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.PACKAGE)
 @Documented
-public @interface Cldr {
+public @interface CldrLocale {
+	// nothing
 }
