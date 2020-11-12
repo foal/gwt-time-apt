@@ -3,6 +3,7 @@ package org.jresearch.gwt.time.apt;
 import java.time.format.FormatStyle;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -50,12 +51,12 @@ import one.util.streamex.StreamEx;
  * 	public final static Map<String, PatternCoordinates[] DATE_LONG_PATTERNS = new HashMap<>();
  * 	public final static Map<String, PatternCoordinates[] DATE_MEDIUM_PATTERNS = new HashMap<>();
  * 	public final static Map<String, PatternCoordinates[] DATE_SHORT_DATE_PATTERNS = new HashMap<>();
- *                                                    []
+ *
  * 	public final static Map<String, PatternCoordinates[] DATE_TIME_FULL_PATTERNS = new HashMap<>();
  * 	public final static Map<String, PatternCoordinates[] DATE_TIME_LONG_PATTERNS = new HashMap<>();
  * 	public final static Map<String, PatternCoordinates[] DATE_TIME_MEDIUM_PATTERNS = new HashMap<>();
  * 	public final static Map<String, PatternCoordinates[] DATE_TIME_SHORT_DATE_PATTERNS = new HashMap<>();
- *                                                    []
+ *
  * 	public final static Map<String, PatternCoordinates[] TIME_FULL_PATTERNS = new HashMap<>();
  * 	public final static Map<String, PatternCoordinates[] TIME_LONG_PATTERNS = new HashMap<>();
  * 	public final static Map<String, PatternCoordinates[] TIME_MEDIUM_PATTERNS = new HashMap<>();
@@ -102,7 +103,7 @@ public class PatternInfoClassBuilder {
 		ArrayTypeName coordinates = ArrayTypeName.of(ClassName.get(packageName.toString(), "PatternCoordinates"));
 		ParameterizedTypeName map = ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(String.class), coordinates);
 
-		staticImports = ImmutableList.of(ClassName.get(Chrono.class), ClassName.get(packageName.toString(), "ImmutablePatternCoordinates"), ClassName.get(packageName.toString(), CldrSupplementalDataProcessor.LOCALE_INFO_CLASS_NAME));
+		staticImports = ImmutableList.of(ClassName.get(Chrono.class), ClassName.get(packageName.toString(), "ImmutablePatternCoordinates"));
 		staticInitBlock = CodeBlock.builder();
 		poetBuilder = TypeSpec
 				.classBuilder(className.toString())
@@ -133,33 +134,33 @@ public class PatternInfoClassBuilder {
 
 	public PatternInfoClassBuilder updatePatternInfoClass(Ldml ldml) {
 
-		Optional<String> localeName = Ldmls.getIdentityInfo(ldml).map(Ldmls::createName);
+		Optional<String> languageTag = Ldmls.getIdentityInfo(ldml).map(Ldmls::createLanguageTag);
 
-		if (localeName.isPresent()) {
+		if (languageTag.isPresent()) {
 
 			Optional<Calendars> clendars = Ldmls.get(ldml, Dates.class)
 					.flatMap(d -> Ldmls.get(d, Calendars.class));
 			clendars
 					.map(c -> Ldmls.getAll(c, Calendar.class))
 					.orElseGet(ImmutableList::of)
-					.forEach(c -> updatePatternInfoClass(clendars.get(), localeName.get(), c));
+					.forEach(c -> updatePatternInfoClass(clendars.get(), languageTag.get(), c));
 		}
 
 		return this;
 	}
 
-	private void updatePatternInfoClass(Calendars calendars, String localeName, Calendar calendar) {
+	private void updatePatternInfoClass(Calendars calendars, String languageTag, Calendar calendar) {
 		Optional<Chrono> chrono = Bases.ofCldr(calendar.getType());
 		if (chrono.isPresent()) {
 			Ldmls.get(calendar, DateFormats.class)
 					.map(f -> to(calendars, f))
-					.ifPresent(p -> updatePatternInfoClass(localeName, chrono.get(), PatternType.DATE, p));
+					.ifPresent(p -> updatePatternInfoClass(languageTag, chrono.get(), PatternType.DATE, p));
 			Ldmls.get(calendar, TimeFormats.class)
 					.map(f -> to(calendars, f))
-					.ifPresent(p -> updatePatternInfoClass(localeName, chrono.get(), PatternType.TIME, p));
+					.ifPresent(p -> updatePatternInfoClass(languageTag, chrono.get(), PatternType.TIME, p));
 			Ldmls.get(calendar, DateTimeFormats.class)
 					.map(f -> to(calendars, f))
-					.ifPresent(p -> updatePatternInfoClass(localeName, chrono.get(), PatternType.DATE_TIME, p));
+					.ifPresent(p -> updatePatternInfoClass(languageTag, chrono.get(), PatternType.DATE_TIME, p));
 		}
 	}
 
@@ -275,17 +276,17 @@ public class PatternInfoClassBuilder {
 	}
 
 	@SuppressWarnings("resource")
-	private void updatePatternInfoClass(String localeName, Chrono chrono, PatternType patternType, PatternProvider provider) {
+	private void updatePatternInfoClass(String languageTag, Chrono chrono, PatternType patternType, PatternProvider provider) {
 		StreamEx.of(FormatStyle.values())
 				.mapToEntry(provider::getPattern)
 				.filterValues(Optional::isPresent)
 				.mapValues(Optional::get)
-				.forEach(e -> addPattern(localeName, chrono, patternType, e.getKey(), e.getValue()));
+				.forEach(e -> addPattern(languageTag, chrono, patternType, e.getKey(), e.getValue()));
 	}
 
-	public PatternInfoClassBuilder addPattern(String localeName, Chrono chrono, PatternType patternType, FormatStyle formatStyle, String pattern) {
+	public PatternInfoClassBuilder addPattern(String languageTag, Chrono chrono, PatternType patternType, FormatStyle formatStyle, String pattern) {
 		if (!IGNORED_PATTERNS.contains(pattern)) {
-			selectMap(patternType, formatStyle).put(pattern, ImmutableAptPatternCoordinates.of(chrono, localeName));
+			selectMap(patternType, formatStyle).put(pattern, ImmutableAptPatternCoordinates.of(chrono, languageTag));
 		}
 		return this;
 	}
@@ -374,7 +375,7 @@ public class PatternInfoClassBuilder {
 	private void generatePatterns(ListMultimap<String, AptPatternCoordinates> map, String mapName, String pattern) {
 		com.squareup.javapoet.CodeBlock.Builder builder = CodeBlock.builder();
 		builder.add("$L.put($S, new PatternCoordinates[] {\n", mapName, pattern);
-		map.get(pattern).forEach(pc -> builder.add("of($L, $L),\n", pc.chrono(), pc.locale()));
+		map.get(pattern).forEach(pc -> builder.add("of($L, $T.forLanguageTag(\"$L\")),\n", pc.chrono(), Locale.class, pc.languageTag()));
 		builder.add("})");
 		staticInitBlock.addStatement(builder.build());
 	}

@@ -30,6 +30,8 @@ import one.util.streamex.StreamEx;
 @SuppressWarnings("nls")
 public class Ldmls {
 
+	private static final String ROOT = "root";
+
 	private Ldmls() {
 		// prevent instantiation
 	}
@@ -126,6 +128,7 @@ public class Ldmls {
 		return get(propertyType, ldml::getAliasOrFallbackOrLocaleDisplayNamesOrLayoutOrContextTransformsOrCharactersOrDelimitersOrMeasurementOrDatesOrNumbersOrUnitsOrListPatternsOrCollationsOrPosixOrCharacterLabelsOrSegmentationsOrRbnfOrTypographicNamesOrAnnotationsOrMetadataOrReferencesOrSpecial);
 	}
 
+	@SuppressWarnings("resource")
 	public static <T> List<T> getAll(Class<T> propertyType, Supplier<List<Object>> supplier) {
 		return StreamEx.of(supplier.get())
 				.filter(o -> propertyType.isAssignableFrom(o.getClass()))
@@ -133,17 +136,29 @@ public class Ldmls {
 				.toList();
 	}
 
+	@SuppressWarnings("resource")
 	public static <T> Optional<T> get(Class<T> propertyType, Supplier<List<Object>> supplier) {
 		return StreamEx.of(supplier.get())
 				.findAny(o -> propertyType.isAssignableFrom(o.getClass()))
 				.map(propertyType::cast);
 	}
 
-	public static String createName(final IdentityInfo info) {
+	@SuppressWarnings("resource")
+	public static String createFieldName(final IdentityInfo info) {
 		return StreamEx.of(info.language(), info.script(), info.territory(), info.variant())
 				.remove(String::isEmpty)
 				.map(String::toUpperCase)
 				.joining("_");
 	}
 
+	@SuppressWarnings("resource")
+	public static String createLanguageTag(final IdentityInfo info) {
+		// Special case for ROOT
+		if (info.language().equalsIgnoreCase(ROOT)) {
+			return "";
+		}
+		return StreamEx.of(info.language(), info.script(), info.territory(), info.variant())
+				.remove(String::isEmpty)
+				.joining("-");
+	}
 }

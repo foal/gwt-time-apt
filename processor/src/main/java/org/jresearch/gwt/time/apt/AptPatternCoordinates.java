@@ -10,6 +10,5 @@ public interface AptPatternCoordinates {
 	Chrono chrono();
 
 	@Parameter
-	String locale();
-
+	String languageTag();
 }

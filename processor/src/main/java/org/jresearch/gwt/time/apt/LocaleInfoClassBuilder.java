@@ -53,7 +53,7 @@ public class LocaleInfoClassBuilder {
 
 	public LocaleInfoClassBuilder addLocale(final IdentityInfo info) {
 		// add public static final Locale AF = Locales.create("af", "", "", "");
-		String fieldName = Ldmls.createName(info);
+		String fieldName = Ldmls.createFieldName(info);
 		FieldSpec locale = FieldSpec.builder(Locale.class, fieldName, Modifier.PUBLIC, Modifier.FINAL, Modifier.STATIC)
 				.initializer("$T.create($S, $S, $S, $S)", localeUtil, info.language(), info.territory(), info.script(), info.variant())
 				.build();

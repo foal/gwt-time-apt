@@ -53,8 +53,6 @@ import one.util.streamex.StreamEx;
 @SuppressWarnings("nls")
 public class CldrSupplementalDataProcessor extends AbstractProcessor {
 
-//	private static final Logger LOGGER = LoggerFactory.getLogger(CldrSupplementalDataProcessor.class);
-
 	private static final String OTHER_TERRITORIES = "001";
 
 	private static final Integer FALBACK_MIN_DAYS = Integer.valueOf(1);
@@ -62,7 +60,7 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 	private static final String CLDR_XML = "supplementalData.xml";
 	private static final String LDML_XML = "root.xml";
 	private static final String WEEK_INFO_CLASS_NAME = "WeekInfo";
-	static final String LOCALE_INFO_CLASS_NAME = "LocaleInfo";
+	private static final String LOCALE_INFO_CLASS_NAME = "LocaleInfo";
 	private static final String PATTERN_INFO_CLASS_NAME = "PatternInfo";
 
 	static final String REGION_ENUM_NAME = "Region";
