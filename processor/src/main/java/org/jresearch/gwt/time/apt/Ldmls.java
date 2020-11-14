@@ -43,11 +43,12 @@ public class Ldmls {
 	public static Optional<IdentityInfo> getIdentityInfo(final @Nonnull Identity identity) {
 		Optional<String> language = get(identity, Language.class).map(Language::getType);
 		if (language.isPresent()) {
+			String lang = ROOT.equalsIgnoreCase(language.get()) ? "" : language.get();
 			String territory = get(identity, Territory.class).map(Territory::getType).orElse("");
 			String script = get(identity, Script.class).map(Script::getType).orElse("");
 			String variant = get(identity, Variant.class).map(Variant::getType).orElse("");
 			return Optional.of(ImmutableIdentityInfo.builder()
-					.language(language.get())
+					.language(lang)
 					.territory(territory)
 					.script(script)
 					.variant(variant)
@@ -145,18 +146,15 @@ public class Ldmls {
 
 	@SuppressWarnings("resource")
 	public static String createFieldName(final IdentityInfo info) {
-		return StreamEx.of(info.language(), info.script(), info.territory(), info.variant())
+		String result = StreamEx.of(info.language(), info.script(), info.territory(), info.variant())
 				.remove(String::isEmpty)
 				.map(String::toUpperCase)
 				.joining("_");
+		return result.isEmpty() ? ROOT.toUpperCase() : result;
 	}
 
 	@SuppressWarnings("resource")
 	public static String createLanguageTag(final IdentityInfo info) {
-		// Special case for ROOT
-		if (info.language().equalsIgnoreCase(ROOT)) {
-			return "";
-		}
 		return StreamEx.of(info.language(), info.script(), info.territory(), info.variant())
 				.remove(String::isEmpty)
 				.joining("-");

@@ -6,9 +6,7 @@ import javax.lang.model.element.Modifier;
 
 import org.jresearch.gwt.time.apt.cldr.ldml.Identity;
 
-import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.TypeSpec.Builder;
@@ -17,9 +15,7 @@ import com.squareup.javapoet.TypeSpec.Builder;
  * <pre>
  * public class LocaleInfo {
  *
- * 	public static final Locale AF = Locales.create("af", "", "", "");
- *
- * 	public static final Locale[] LOCALES = new Locale[] { AF };
+ * 	public static final Locale AF = LocaleRegistry.register("af", "", "", "");
  *
  * }
  * </pre>
@@ -28,14 +24,9 @@ import com.squareup.javapoet.TypeSpec.Builder;
 public class LocaleInfoClassBuilder {
 
 	private final Builder poetBuilder;
-	private com.squareup.javapoet.FieldSpec.Builder localeArray;
-	private com.squareup.javapoet.CodeBlock.Builder initializer;
-	private ClassName localeUtil = ClassName.get("org.jresearch.gwt.locale.client.locale", "Locales");
+	private ClassName localeUtil = ClassName.get("org.jresearch.gwt.locale.client.locale", "LocaleRegistry");
 
 	private LocaleInfoClassBuilder(final CharSequence packageName, final CharSequence className) {
-		ArrayTypeName array = ArrayTypeName.of(Locale.class);
-		localeArray = FieldSpec.builder(array, "LOCALES", Modifier.PUBLIC, Modifier.FINAL, Modifier.STATIC);
-		initializer = CodeBlock.builder().add("new $T[] {", Locale.class);
 		poetBuilder = TypeSpec
 				.classBuilder(ClassName.get(packageName.toString(), className.toString()))
 				.addModifiers(Modifier.PUBLIC);
@@ -52,28 +43,16 @@ public class LocaleInfoClassBuilder {
 	}
 
 	public LocaleInfoClassBuilder addLocale(final IdentityInfo info) {
-		// add public static final Locale AF = Locales.create("af", "", "", "");
+		// add public static final Locale AF = LocaleRegistry.register("af", "", "", "");
 		String fieldName = Ldmls.createFieldName(info);
 		FieldSpec locale = FieldSpec.builder(Locale.class, fieldName, Modifier.PUBLIC, Modifier.FINAL, Modifier.STATIC)
-				.initializer("$T.create($S, $S, $S, $S)", localeUtil, info.language(), info.territory(), info.script(), info.variant())
+				.initializer("$T.register($S, $S, $S, $S)", localeUtil, info.language(), info.territory(), info.script(), info.variant())
 				.build();
 		poetBuilder.addField(locale);
-		return addLocaleInt(fieldName);
-	}
-
-	private LocaleInfoClassBuilder addLocaleInt(final String localeField) {
-		initializer.add("$L,", localeField);
 		return this;
 	}
 
 	public TypeSpec build() {
-		return poetBuilder
-				.addField(localeArray
-						.initializer(initializer
-								.add("}")
-								.build())
-						.build())
-				.build();
+		return poetBuilder.build();
 	}
-
 }
