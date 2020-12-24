@@ -153,32 +153,30 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 			final URI uri = processingEnv.getFiler()
 					.getResource(StandardLocation.CLASS_OUTPUT, "cldr.common.main", LDML_XML)
 					.toUri();
-			com.google.common.collect.ImmutableList.Builder<Ldml> builder = ImmutableList.builder();
+			ImmutableList.Builder<Ldml> builder = ImmutableList.builder();
 			Path mainFolder = Paths.get(uri).getParent();
 			try (DirectoryStream<Path> stream = Files.newDirectoryStream(mainFolder, "*.xml")) {
-				JAXBContext context = JAXBContext.newInstance(Ldml.class);
 				StreamEx.of(stream.iterator())
 						.parallel()
 						.map(Path::toUri)
-						.map(u -> loadLdml(context, u))
+						.map(u -> loadLdml(u))
 						.flatMap(StreamEx::of)
 						.forEach(builder::add);
-			} catch (JAXBException e) {
-				processingEnv.getMessager().printMessage(Kind.ERROR, String.format("Can't load Ldml data: %s", e.getMessage()));
 			}
 			return builder.build();
 		} catch (IOException e) {
-			processingEnv.getMessager().printMessage(Kind.ERROR, String.format("Can't load LDML data. Error: {}", e.getMessage()));
+			processingEnv.getMessager().printMessage(Kind.ERROR, String.format("Can't load LDML data. Error: %s", e.getMessage()));
 			return ImmutableList.of();
 		} finally {
 			System.clearProperty("javax.xml.accessExternalDTD");
 		}
 	}
 
-	private Optional<Ldml> loadLdml(JAXBContext context, final URI data) {
+	private Optional<Ldml> loadLdml(final URI data) {
 		try {
+			JAXBContext context = JAXBContext.newInstance(Ldml.class);
 			return loadLdml(context, data.toURL());
-		} catch (MalformedURLException e) {
+		} catch (MalformedURLException | JAXBException e) {
 			processingEnv.getMessager().printMessage(Kind.ERROR, String.format("Can't load data from path %s, skipped. Error: %s", data, e.getMessage()));
 			return Optional.empty();
 		}
