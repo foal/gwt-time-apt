@@ -42,11 +42,25 @@
 			<groupId>com.google.code.findbugs</groupId>
 			<artifactId>jsr305</artifactId>
 		</dependency>
-		<!-- <dependency>
+		<dependency>
 			<groupId>jakarta.xml.bind</groupId>
 			<artifactId>jakarta.xml.bind-api</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>com.fasterxml.jackson.dataformat</groupId>
+			<artifactId>jackson-dataformat-xml</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.module</groupId>
+			<artifactId>jackson-module-jaxb-annotations</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.woodstox</groupId>
+			<artifactId>woodstox-core</artifactId>
+			<version>6.2.6</version>
+			<scope>runtime</scope>
+		</dependency>
+		<!-- <dependency>
 			<groupId>org.glassfish.jaxb</groupId>
 			<artifactId>jaxb-runtime</artifactId>
 			<scope>runtime</scope>
@@ -96,10 +110,10 @@
 						<configuration>
 							<generatePackage>org.jresearch.gwt.time.apt.cldr.ldmlSupplemental</generatePackage>
 							<bindingIncludes>
-								<bindingInclude>ldmlSupplemental.xjb</bindingInclude>
+								<bindingInclude>cldr/common/dtd/ldmlSupplemental.xjb</bindingInclude>
 							</bindingIncludes>
 							<schemaIncludes>
-								<schemaInclude>ldmlSupplemental.dtd</schemaInclude>
+								<schemaInclude>cldr/common/dtd/ldmlSupplemental.dtd</schemaInclude>
 							</schemaIncludes>
 							<generateDirectory>${project.build.directory}/generated-sources/xjc-ldmlSupplemental</generateDirectory>
 						</configuration>
@@ -112,13 +126,36 @@
 						<configuration>
 							<generatePackage>org.jresearch.gwt.time.apt.cldr.ldml</generatePackage>
 							<bindingIncludes>
-								<bindingInclude>ldml.xjb</bindingInclude>
+								<bindingInclude>cldr/common/dtd/ldml.xjb</bindingInclude>
 							</bindingIncludes>
 							<schemaIncludes>
-								<schemaInclude>ldml.dtd</schemaInclude>
+								<schemaInclude>cldr/common/dtd/ldml.dtd</schemaInclude>
 							</schemaIncludes>
 							<generateDirectory>${project.build.directory}/generated-sources/xjc-ldml</generateDirectory>
 						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>1.7</version>
+				<executions>
+					<execution>
+						<phase>generate-sources</phase>
+						<configuration>
+							<target>
+								<fileset id="my-fileset" dir="src/main/resources/cldr/common/main">
+									<include name="*.xml" />
+								</fileset>
+								<pathconvert pathsep=";" property="my-file-list" refid="my-fileset">
+									<map from="${basedir}/src/main/resources/cldr/common/main/" to="/cldr/common/main/" />
+								</pathconvert>
+								<echo file="${project.build.directory}/generated-sources/annotations/main-list.txt">${my-file-list}</echo>
+							</target>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
 					</execution>
 				</executions>
 			</plugin>

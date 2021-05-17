@@ -1,20 +1,17 @@
 package org.jresearch.gwt.time.apt;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Writer;
-import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URL;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
 import java.time.DayOfWeek;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
@@ -39,6 +36,8 @@ import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.SupplementalData;
 import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.TerritoryCodes;
 import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.WeekData;
 
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -57,13 +56,15 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 
 	private static final Integer FALBACK_MIN_DAYS = Integer.valueOf(1);
 
-	private static final String CLDR_XML = "supplementalData.xml";
-	private static final String LDML_XML = "root.xml";
+	private static final String CLDR_XML = "/supplemental/supplementalData.xml";
+	private static final String LDML_XML_LIST = "/main-list.txt";
 	private static final String WEEK_INFO_CLASS_NAME = "WeekInfo";
 	private static final String LOCALE_INFO_CLASS_NAME = "LocaleInfo";
 	private static final String PATTERN_INFO_CLASS_NAME = "PatternInfo";
 
 	static final String REGION_ENUM_NAME = "Region";
+
+	private static final XmlMapper xmlMapper = new XmlMapper();
 
 	@Override
 	public Set<String> getSupportedAnnotationTypes() {
@@ -73,6 +74,12 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 	@Override
 	public SourceVersion getSupportedSourceVersion() {
 		return SourceVersion.latestSupported();
+	}
+
+	@Override
+	public synchronized void init(ProcessingEnvironment processingEnv) {
+		xmlMapper.registerModule(new JaxbAnnotationModule());
+		super.init(processingEnv);
 	}
 
 	@SuppressWarnings("resource")
@@ -133,7 +140,7 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 			System.setProperty("javax.xml.accessExternalDTD", "all");
 			final URL data = processingEnv
 					.getFiler()
-					.getResource(StandardLocation.CLASS_OUTPUT, "cldr.common.supplemental", CLDR_XML)
+					.getResource(StandardLocation.CLASS_OUTPUT, "supplemental", CLDR_XML)
 					.toUri()
 					.toURL();
 			return loadSupplementalData(data);
@@ -150,43 +157,37 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 		processingEnv.getMessager().printMessage(Kind.NOTE, "Load Main data");
 		try {
 			System.setProperty("javax.xml.accessExternalDTD", "all");
-			final URI uri = processingEnv.getFiler()
-					.getResource(StandardLocation.CLASS_OUTPUT, "cldr.common.main", LDML_XML)
-					.toUri();
+			List<URL> resources = getMainUrls();
 			ImmutableList.Builder<Ldml> builder = ImmutableList.builder();
-			Path mainFolder = Paths.get(uri).getParent();
-			try (DirectoryStream<Path> stream = Files.newDirectoryStream(mainFolder, "*.xml")) {
-				StreamEx.of(stream.iterator())
-						.parallel()
-						.map(Path::toUri)
-						.map(u -> loadLdml(u))
-						.flatMap(StreamEx::of)
-						.forEach(builder::add);
-			}
+			StreamEx.of(resources)
+					.map(this::loadLdml)
+					.flatMap(StreamEx::of)
+					.forEach(builder::add);
 			return builder.build();
-		} catch (IOException e) {
-			processingEnv.getMessager().printMessage(Kind.ERROR, String.format("Can't load LDML data. Error: %s", e.getMessage()));
-			return ImmutableList.of();
 		} finally {
 			System.clearProperty("javax.xml.accessExternalDTD");
 		}
 	}
 
-	private Optional<Ldml> loadLdml(final URI data) {
-		try {
-			JAXBContext context = JAXBContext.newInstance(Ldml.class);
-			return loadLdml(context, data.toURL());
-		} catch (MalformedURLException | JAXBException e) {
-			processingEnv.getMessager().printMessage(Kind.ERROR, String.format("Can't load data from path %s, skipped. Error: %s", data, e.getMessage()));
-			return Optional.empty();
+	@SuppressWarnings("resource")
+	private List<URL> getMainUrls() {
+		try (InputStream content = CldrSupplementalDataProcessor.class.getResourceAsStream(LDML_XML_LIST)) {
+			String list = new String(content.readAllBytes(), StandardCharsets.UTF_8);
+			return StreamEx.split(list, ';')
+					.map(CldrSupplementalDataProcessor.class::getResource)
+					.nonNull()
+					.toImmutableList();
+		} catch (IOException e) {
+			processingEnv.getMessager().printMessage(Kind.ERROR, String.format("Can't get LDML data list. Error: %s", e.getMessage()));
+			return List.of();
 		}
 	}
 
-	private Optional<Ldml> loadLdml(JAXBContext context, final URL data) {
+	private Optional<Ldml> loadLdml(final URL data) {
 		processingEnv.getMessager().printMessage(Kind.NOTE, String.format("Process %s", data));
 		try {
-			return Optional.of(Ldml.class.cast(context.createUnmarshaller().unmarshal(data)));
-		} catch (JAXBException e) {
+			return Optional.of(xmlMapper.readValue(data, Ldml.class));
+		} catch (IOException e) {
 			processingEnv.getMessager().printMessage(Kind.ERROR, String.format("Can't load data from %s: %s", data, e.getMessage()));
 			return Optional.empty();
 		}
