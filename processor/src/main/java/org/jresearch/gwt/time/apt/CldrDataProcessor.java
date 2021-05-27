@@ -46,7 +46,7 @@ import com.squareup.javapoet.TypeSpec;
 import one.util.streamex.StreamEx;
 
 @AutoService(Processor.class)
-public class CldrSupplementalDataProcessor extends AbstractProcessor {
+public class CldrDataProcessor extends AbstractProcessor {
 
 	private static final String OTHER_TERRITORIES = "001";
 
@@ -61,6 +61,8 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 	static final String REGION_ENUM_NAME = "Region";
 
 	private Unmarshaller ldmUnmarshaller;
+	private Unmarshaller supUnmarshaller;
+	private List<Ldml> mainData = List.of();
 
 	@Override
 	public Set<String> getSupportedAnnotationTypes() {
@@ -77,13 +79,13 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 	public boolean process(final Set<? extends TypeElement> annotations, final RoundEnvironment roundEnv) {
 		try {
 			System.setProperty("javax.xml.accessExternalDTD", "all");
+			initUnmarshaller();
 			// get first available annotated package and ignore others
 			StreamEx.of(roundEnv.getElementsAnnotatedWith(CldrTime.class))
 					.filterBy(Element::getKind, ElementKind.PACKAGE)
 					.findAny()
 					.map(PackageElement.class::cast)
 					.ifPresent(this::generateCldrTimeData);
-			ldmUnmarshaller = JAXBContext.newInstance(Ldml.class).createUnmarshaller();
 			// get first available annotated package and ignore others
 			StreamEx.of(roundEnv.getElementsAnnotatedWith(CldrLocale.class))
 					.filterBy(Element::getKind, ElementKind.PACKAGE)
@@ -94,8 +96,17 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 		} catch (JAXBException e) {
 			throw new RuntimeException(e);
 		} finally {
-			ldmUnmarshaller = null;
 			System.clearProperty("javax.xml.accessExternalDTD");
+		}
+	}
+
+	private void initUnmarshaller() throws JAXBException {
+		ClassLoader classLoader = JAXBContext.class.getClassLoader();
+		if (ldmUnmarshaller == null) {
+			ldmUnmarshaller = JAXBContext.newInstance(Ldml.class.getPackageName(), classLoader).createUnmarshaller();
+		}
+		if (supUnmarshaller == null) {
+			supUnmarshaller = JAXBContext.newInstance(SupplementalData.class.getPackageName(), classLoader).createUnmarshaller();
 		}
 	}
 
@@ -111,14 +122,12 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 		supplementalData
 				.map(SupplementalData::getWeekData)
 				.ifPresent(d -> generateWeekInfoClass(d, packageName));
-		List<Ldml> mainData = loadMainData();
-		generatePatternInfoClass(mainData, packageName);
+		generatePatternInfoClass(loadMainData(), packageName);
 	}
 
 	private void generateCldrLocaleData(final PackageElement annotatedPackage) {
 		Name packageName = annotatedPackage.getQualifiedName();
-		List<Ldml> mainData = loadMainData();
-		generateLocaleInfoClass(mainData, packageName);
+		generateLocaleInfoClass(loadMainData(), packageName);
 	}
 
 	private Void generateTerritoryEnumClass(final List<String> territories, final Name packageName) {
@@ -136,7 +145,7 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 	private Optional<SupplementalData> loadSupplementalData() {
 		processingEnv.getMessager().printMessage(Kind.NOTE, "Load SupplementalData");
 		try {
-			URL data = CldrSupplementalDataProcessor.class.getResource(CLDR_XML);
+			URL data = CldrDataProcessor.class.getResource(CLDR_XML);
 			return loadSupplementalData(data);
 		} catch (final Exception e) {
 			processingEnv.getMessager().printMessage(Kind.ERROR, String.format("Can't load CLDR SupplementalData: %s", e.getMessage()));
@@ -146,32 +155,30 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 
 	@SuppressWarnings("resource")
 	private List<Ldml> loadMainData() {
-		processingEnv.getMessager().printMessage(Kind.NOTE, "Load Main data");
-		List<URL> resources = getMainUrls();
-		ImmutableList.Builder<Ldml> builder = ImmutableList.builder();
-		StreamEx.of(resources)
-				.map(this::loadLdml)
-				.flatMap(StreamEx::of)
-				.forEach(builder::add);
-		return builder.build();
+		if (mainData.isEmpty()) {
+			processingEnv.getMessager().printMessage(Kind.NOTE, "Load Main data");
+			mainData = getMainUrls()
+					.map(this::loadLdml)
+					.flatMap(StreamEx::of)
+					.toImmutableList();
+		}
+		return mainData;
 	}
 
 	@SuppressWarnings("resource")
-	private List<URL> getMainUrls() {
-		try (InputStream content = CldrSupplementalDataProcessor.class.getResourceAsStream(LDML_XML_LIST)) {
+	private StreamEx<URL> getMainUrls() {
+		try (InputStream content = CldrDataProcessor.class.getResourceAsStream(LDML_XML_LIST)) {
 			String list = new String(content.readAllBytes(), StandardCharsets.UTF_8);
 			return StreamEx.split(list, ';')
-					.map(CldrSupplementalDataProcessor.class::getResource)
-					.nonNull()
-					.toImmutableList();
+					.map(CldrDataProcessor.class::getResource)
+					.nonNull();
 		} catch (IOException e) {
 			processingEnv.getMessager().printMessage(Kind.ERROR, String.format("Can't get LDML data list. Error: %s", e.getMessage()));
-			return List.of();
+			return StreamEx.of();
 		}
 	}
 
 	private Optional<Ldml> loadLdml(final URL data) {
-		processingEnv.getMessager().printMessage(Kind.NOTE, String.format("Process %s", data));
 		try {
 			return Optional.of(Ldml.class.cast(ldmUnmarshaller.unmarshal(data)));
 		} catch (JAXBException e) {
@@ -181,10 +188,8 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 	}
 
 	private Optional<SupplementalData> loadSupplementalData(final URL data) {
-		processingEnv.getMessager().printMessage(Kind.NOTE, String.format("Process %s", data));
 		try {
-			JAXBContext context = JAXBContext.newInstance(SupplementalData.class);
-			return Optional.of((SupplementalData) context.createUnmarshaller().unmarshal(data));
+			return Optional.of((SupplementalData) supUnmarshaller.unmarshal(data));
 		} catch (JAXBException e) {
 			processingEnv.getMessager().printMessage(Kind.ERROR, String.format("Can't load data from %s: %s", data, e.getMessage()));
 			return Optional.empty();
@@ -196,16 +201,16 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 		processingEnv.getMessager().printMessage(Kind.NOTE, "Generate week info");
 		final WeekInfoClassBuilder builder = WeekInfoClassBuilder.create(packageName, WEEK_INFO_CLASS_NAME);
 		DayOfWeek firstDay = StreamEx.of(weekData.getFirstDay())
-				.filter(CldrSupplementalDataProcessor::isDefault)
+				.filter(CldrDataProcessor::isDefault)
 				.findAny()
 				.map(FirstDay::getDay)
-				.map(CldrSupplementalDataProcessor::toDayOfWeek)
+				.map(CldrDataProcessor::toDayOfWeek)
 				.orElse(DayOfWeek.MONDAY);
 
 		builder.addDefaultFirstDay(firstDay);
 
 		int minDays = StreamEx.of(weekData.getMinDays())
-				.filter(CldrSupplementalDataProcessor::isDefault)
+				.filter(CldrDataProcessor::isDefault)
 				.findAny()
 				.map(MinDays::getCount)
 				.map(Integer::valueOf)
@@ -215,17 +220,17 @@ public class CldrSupplementalDataProcessor extends AbstractProcessor {
 		builder.addDefaultMinDays(minDays);
 
 		StreamEx.of(weekData.getFirstDay())
-				.remove(CldrSupplementalDataProcessor::isDefault)
-				.remove(CldrSupplementalDataProcessor::isDraft)
-				.remove(CldrSupplementalDataProcessor::isAlt)
+				.remove(CldrDataProcessor::isDefault)
+				.remove(CldrDataProcessor::isDraft)
+				.remove(CldrDataProcessor::isAlt)
 				.mapToEntry(FirstDay::getDay, FirstDay::getTerritories)
-				.mapKeys(CldrSupplementalDataProcessor::toDayOfWeek)
+				.mapKeys(CldrDataProcessor::toDayOfWeek)
 				.forKeyValue(builder::addFirstDayEntry);
 
 		StreamEx.of(weekData.getMinDays())
-				.remove(CldrSupplementalDataProcessor::isDefault)
-				.remove(CldrSupplementalDataProcessor::isDraft)
-				.remove(CldrSupplementalDataProcessor::isAlt)
+				.remove(CldrDataProcessor::isDefault)
+				.remove(CldrDataProcessor::isDraft)
+				.remove(CldrDataProcessor::isAlt)
 				.mapToEntry(MinDays::getCount, MinDays::getTerritories)
 				.mapKeys(Integer::valueOf)
 				.forKeyValue(builder::addMinDaysEntry);

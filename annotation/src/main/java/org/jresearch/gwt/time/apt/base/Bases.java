@@ -1,6 +1,5 @@
 package org.jresearch.gwt.time.apt.base;
 
-import java.time.chrono.Chronology;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -24,9 +23,8 @@ public class Bases {
 				.map(CLDR_INDEX::get);
 	}
 
-	public static Optional<Chrono> ofJavaTine(Chronology chronology) {
-		return Optional.of(chronology)
-				.map(Chronology::getId)
+	public static Optional<Chrono> ofJavaTime(String chronologyId) {
+		return Optional.of(chronologyId)
 				.map(String::toUpperCase)
 				.map(JAVA_TIME_INDEX::get);
 	}

@@ -74,12 +74,10 @@
 				<configuration>
 					<ignoredUnusedDeclaredDependencies>
 						<ignoredUnusedDeclaredDependency>com.google.auto.service:auto-service-annotations</ignoredUnusedDeclaredDependency>
-						<!-- <ignoredUnusedDeclaredDependency>org.glassfish.jaxb:jaxb-runtime</ignoredUnusedDeclaredDependency> -->
 					</ignoredUnusedDeclaredDependencies>
 				</configuration>
 			</plugin>
 			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
 					<annotationProcessorPaths>
@@ -100,19 +98,6 @@
 				<groupId>org.jvnet.jaxb2.maven2</groupId>
 				<artifactId>maven-jaxb2-plugin</artifactId>
 				<version>0.14.0</version>
-				<configuration>
-					<extension>true</extension>
-					<args>
-						<arg>-Xsimplify</arg>
-					</args>
-					<plugins>
-						<plugin>
-							<groupId>org.jvnet.jaxb2_commons</groupId>
-							<artifactId>jaxb2-basics</artifactId>
-							<version>0.12.0</version>
-						</plugin>
-					</plugins>
-				</configuration>
 				<executions>
 					<execution>
 						<id>ldmlSupplemental</id>
@@ -153,7 +138,7 @@
 				<version>1.7</version>
 				<executions>
 					<execution>
-						<phase>generate-sources</phase>
+						<phase>generate-resources</phase>
 						<configuration>
 							<target>
 								<fileset id="my-fileset" dir="src/main/resources/cldr/common/main">
@@ -162,7 +147,7 @@
 								<pathconvert pathsep=";" property="my-file-list" refid="my-fileset">
 									<map from="${basedir}/src/main/resources/cldr/common/main/" to="/cldr/common/main/" />
 								</pathconvert>
-								<echo file="${project.build.directory}/generated-sources/annotations/main-list.txt">${my-file-list}</echo>
+								<echo file="${project.build.outputDirectory}/main-list.txt">${my-file-list}</echo>
 							</target>
 						</configuration>
 						<goals>

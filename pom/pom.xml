@@ -21,12 +21,19 @@
 	<modules>
 		<module>../annotation</module>
 		<module>../processor</module>
+		<module>../data</module>
 	</modules>
 	<properties>
 		<gwt.version>2.9.0</gwt.version>
+		<gwt-locale.ver>1.0.4-SNAPSHOT</gwt-locale.ver>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
+			<dependency>
+				<groupId>org.jresearch.gwt.locale</groupId>
+				<artifactId>org.jresearch.gwt.locale</artifactId>
+				<version>${gwt-locale.ver}</version>
+			</dependency>
 			<dependency>
 				<groupId>org.jresearch.gwt.time</groupId>
 				<artifactId>org.jresearch.gwt.time.apt.annotation</artifactId>
@@ -39,4 +46,15 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>11</source>
+					<target>11</target>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
 </project>

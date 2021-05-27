@@ -1,6 +1,5 @@
 package org.jresearch.gwt.time.apt.base;
 
-@SuppressWarnings("nls")
 public enum Chrono {
 
 	ISO("gregorian", "ISO"),

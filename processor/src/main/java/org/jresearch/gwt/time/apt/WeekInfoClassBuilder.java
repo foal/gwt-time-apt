@@ -1,6 +1,7 @@
 package org.jresearch.gwt.time.apt;
 
 import java.time.DayOfWeek;
+//import java.time.DayOfWeek;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -24,16 +25,16 @@ import one.util.streamex.StreamEx;
  * public class WeekInfo {
  *
  * 	public static final Integer DEFAULT_MIN_DAYS = Integer.valueOf(1);
- * 	public static final DayOfWeek DEFAULT_FIRST_DAY = MONDAY;
+ * 	public static final int DEFAULT_FIRST_DAY = MONDAY.getValue();
  *
  * 	public static final Map<Integer, EnumSet<Region>> MIN_DAYS = new HashMap<>();
- * 	public static final Map<DayOfWeek, EnumSet<Region>> FIRST_DAY = new HashMap<>();
+ * 	public static final Map<Integer, EnumSet<Region>> FIRST_DAY = new HashMap<>();
  *
  * 	static {
  * 		MIN_DAYS.put(Integer.valueOf(4), EnumSet.of(AD, AN, AT, AX, BE, BG, CH, CZ, DE, DK, EE, ES, FI, FJ, FO, FR, GB, GF, GG, GI, GP, GR, HU, IE, IM, IS));
- * 		FIRST_DAY.put(FRIDAY, EnumSet.of(MV));
- * 		FIRST_DAY.put(SATURDAY, EnumSet.of(AE, AF, BH));
- * 		FIRST_DAY.put(SUNDAY, EnumSet.of(AG, AS, AU, BD, BR, BS));
+ * 		FIRST_DAY.put(Integer.valueOf(5), EnumSet.of(MV));
+ * 		FIRST_DAY.put(Integer.valueOf(6), EnumSet.of(AE, AF, BH));
+ * 		FIRST_DAY.put(Integer.valueOf(7), EnumSet.of(AG, AS, AU, BD, BR, BS));
  * 	}
  *
  * }
@@ -47,16 +48,15 @@ public class WeekInfoClassBuilder {
 	private final com.squareup.javapoet.CodeBlock.Builder staticInitBlock;
 
 	private WeekInfoClassBuilder(final CharSequence packageName, final CharSequence className) {
-		ClassName region = ClassName.get(packageName.toString(), CldrSupplementalDataProcessor.REGION_ENUM_NAME);
+		ClassName region = ClassName.get(packageName.toString(), CldrDataProcessor.REGION_ENUM_NAME);
 		ParameterizedTypeName setOfEnum = ParameterizedTypeName.get(ClassName.get(EnumSet.class), region);
-		ParameterizedTypeName mapMinDays = ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(Integer.class), setOfEnum);
-		ParameterizedTypeName mapFirstDay = ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(DayOfWeek.class), setOfEnum);
-		staticImports = ImmutableList.of(region, ClassName.get(DayOfWeek.class));
+		ParameterizedTypeName map = ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(Integer.class), setOfEnum);
+		staticImports = ImmutableList.of(region);
 		staticInitBlock = CodeBlock.builder();
-		FieldSpec minDaysMap = FieldSpec.builder(mapMinDays, "MIN_DAYS", Modifier.PUBLIC, Modifier.FINAL, Modifier.STATIC)
+		FieldSpec minDaysMap = FieldSpec.builder(map, "MIN_DAYS", Modifier.PUBLIC, Modifier.FINAL, Modifier.STATIC)
 				.initializer("new $T<>()", HashMap.class)
 				.build();
-		FieldSpec firstDayMap = FieldSpec.builder(mapFirstDay, "FIRST_DAY", Modifier.PUBLIC, Modifier.FINAL, Modifier.STATIC)
+		FieldSpec firstDayMap = FieldSpec.builder(map, "FIRST_DAY", Modifier.PUBLIC, Modifier.FINAL, Modifier.STATIC)
 				.initializer("new $T<>()", HashMap.class)
 				.build();
 		poetBuilder = TypeSpec
@@ -80,17 +80,19 @@ public class WeekInfoClassBuilder {
 		return this;
 	}
 
+	@SuppressWarnings("boxing")
 	public WeekInfoClassBuilder addDefaultFirstDay(final DayOfWeek defaultFirstDay) {
-		FieldSpec values = FieldSpec.builder(DayOfWeek.class, "DEFAULT_FIRST_DAY", Modifier.PUBLIC, Modifier.FINAL, Modifier.STATIC)
-				.initializer("$L", defaultFirstDay)
+		FieldSpec values = FieldSpec.builder(Integer.class, "DEFAULT_FIRST_DAY", Modifier.PUBLIC, Modifier.FINAL, Modifier.STATIC)
+				.initializer("$T.valueOf($L)", Integer.class, defaultFirstDay.getValue())
 				.build();
 
 		poetBuilder.addField(values);
 		return this;
 	}
 
+	@SuppressWarnings("boxing")
 	public WeekInfoClassBuilder addFirstDayEntry(final DayOfWeek firstDay, List<String> territories) {
-		staticInitBlock.addStatement("FIRST_DAY.put($L, EnumSet.of($L))", firstDay, createTerritoryBlock(territories));
+		staticInitBlock.addStatement("FIRST_DAY.put($T.valueOf($L), EnumSet.of($L))", Integer.class, firstDay.getValue(), createTerritoryBlock(territories));
 		return this;
 	}
 
@@ -100,6 +102,7 @@ public class WeekInfoClassBuilder {
 		return this;
 	}
 
+	@SuppressWarnings("resource")
 	private static CodeBlock createTerritoryBlock(List<String> territories) {
 		return StreamEx.of(territories)
 				.map(WeekInfoClassBuilder::toJava)
