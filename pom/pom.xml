@@ -23,7 +23,7 @@
 		<module>../data</module>
 	</modules>
 	<properties>
-        <java.version>8</java.version>
+		<java.version>8</java.version>
 		<gwt.version>2.9.0</gwt.version>
 		<gwt-locale.ver>1.0.5-SNAPSHOT</gwt-locale.ver>
 	</properties>
