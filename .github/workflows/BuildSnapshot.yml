@@ -31,9 +31,6 @@ jobs:
     - name: Package and test generator
       run: mvn package -U -B
       working-directory: pom
-    - name: Package and test data
-      run: mvn package -U -B
-      working-directory: data
     - name: Deploy generator
       run: mvn deploy -Dmaven.test.skip -B
       working-directory: pom
