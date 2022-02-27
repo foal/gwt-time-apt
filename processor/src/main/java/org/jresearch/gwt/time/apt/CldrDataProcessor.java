@@ -6,7 +6,6 @@ import java.io.Writer;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.DayOfWeek;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -39,7 +38,6 @@ import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.WeekData;
 import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.io.ByteStreams;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.JavaFile.Builder;
@@ -64,7 +62,7 @@ public class CldrDataProcessor extends AbstractProcessor {
 
 	private Unmarshaller ldmUnmarshaller;
 	private Unmarshaller supUnmarshaller;
-	private List<Ldml> mainData = new ArrayList<>();
+	private List<Ldml> mainData = List.of();
 
 	@Override
 	public Set<String> getSupportedAnnotationTypes() {
@@ -105,10 +103,10 @@ public class CldrDataProcessor extends AbstractProcessor {
 	private void initUnmarshaller() throws JAXBException {
 		ClassLoader classLoader = JAXBContext.class.getClassLoader();
 		if (ldmUnmarshaller == null) {
-			ldmUnmarshaller = JAXBContext.newInstance(Ldml.class.getPackage().getName(), classLoader).createUnmarshaller();
+			ldmUnmarshaller = JAXBContext.newInstance(Ldml.class.getPackageName(), classLoader).createUnmarshaller();
 		}
 		if (supUnmarshaller == null) {
-			supUnmarshaller = JAXBContext.newInstance(SupplementalData.class.getPackage().getName(), classLoader).createUnmarshaller();
+			supUnmarshaller = JAXBContext.newInstance(SupplementalData.class.getPackageName(), classLoader).createUnmarshaller();
 		}
 	}
 
@@ -170,7 +168,7 @@ public class CldrDataProcessor extends AbstractProcessor {
 	@SuppressWarnings("resource")
 	private StreamEx<URL> getMainUrls() {
 		try (InputStream content = CldrDataProcessor.class.getResourceAsStream(LDML_XML_LIST)) {
-			String list = new String(ByteStreams.toByteArray(content), StandardCharsets.UTF_8);
+			String list = new String(content.readAllBytes(), StandardCharsets.UTF_8);
 			return StreamEx.split(list, ';')
 					.map(CldrDataProcessor.class::getResource)
 					.nonNull();
