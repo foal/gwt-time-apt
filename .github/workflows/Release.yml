@@ -52,7 +52,7 @@ jobs:
       run: mvn versions:resolve-ranges versions:update-properties -Dincludes=com.jresearchsoft*:*,org.jresearch*:* -B
       working-directory: data
     - name: Release data
-      run: mvn release:clean release:prepare release:perform -B -P ci
+      run: mvn release:clean release:prepare release:perform -B -P ci -DtagNameFormat=v@{project.version}-data
       working-directory: data
     - name: Push released version to GitHub
       run: git push && git push --tags
