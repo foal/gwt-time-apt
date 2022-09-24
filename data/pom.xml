@@ -7,7 +7,7 @@
 		<relativePath>../pom/pom.xml</relativePath>
 	</parent>
 	<artifactId>org.jresearch.gwt.time.apt.data</artifactId>
-  <version>2.0.10</version>
+  <version>2.0.11-SNAPSHOT</version>
 	<name>JRESEARCH-COMMONS: GWT time support CLDT data</name>
 	<packaging>gwt-lib</packaging>
 	<dependencies>
@@ -81,8 +81,4 @@
 			</plugin>
 		</plugins>
 	</build>
-
-  <scm>
-    <tag>v2.0.10-data</tag>
-  </scm>
 </project>
