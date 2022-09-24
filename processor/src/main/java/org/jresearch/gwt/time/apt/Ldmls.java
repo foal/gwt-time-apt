@@ -62,11 +62,11 @@ public class Ldmls {
 	}
 
 	public static <T> Optional<T> get(TimeFormat formats, Class<T> propertyType) {
-		return get(propertyType, formats::getAliasOrPatternOrDisplayNameOrSpecial);
+		return get(propertyType, formats::getAliasOrPatternOrDatetimeSkeletonOrDisplayNameOrSpecial);
 	}
 
 	public static <T> Optional<T> get(DateFormat formats, Class<T> propertyType) {
-		return get(propertyType, formats::getAliasOrPatternOrDisplayNameOrSpecial);
+		return get(propertyType, formats::getAliasOrPatternOrDatetimeSkeletonOrDisplayNameOrSpecial);
 	}
 
 	public static <T> Optional<T> get(DateTimeFormatLength formats, Class<T> propertyType) {
