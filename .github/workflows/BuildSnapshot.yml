@@ -44,7 +44,7 @@ jobs:
       uses: EnricoMi/publish-unit-test-result-action@v2
       if: always()
       with:
-        files: "**/target/surefire-reports/*.xml"
+        junit_files: "**/target/surefire-reports/*.xml"
       
   sonar:
     name: Run Sonar analysis
