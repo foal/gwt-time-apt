@@ -7,13 +7,13 @@
 	</parent>
 	<artifactId>org.jresearch.gwt.time.apt.data</artifactId>
 	<name>JRESEARCH-COMMONS: GWT time support CLDT data</name>
-	<version>2.0.11-SNAPSHOT</version>
+	<version>2.0.11</version>
 	<packaging>gwt-lib</packaging>
 	<properties>
 		<java.version>11</java.version>
 		<gwt.version>2.9.0</gwt.version>
 		<gwt-locale.ver>1.0.5</gwt-locale.ver>
-		<gwt-time-apt.ver>2.0.10</gwt-time-apt.ver>
+		<gwt-time-apt.ver>2.0.11</gwt-time-apt.ver>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
@@ -105,4 +105,8 @@
 			</plugin>
 		</plugins>
 	</build>
+
+  <scm>
+    <tag>v2.0.11-data</tag>
+  </scm>
 </project>
