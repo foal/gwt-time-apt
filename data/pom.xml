@@ -5,16 +5,20 @@
 		<artifactId>org.jresearch.pom</artifactId>
 		<version>29-SNAPSHOT</version>
 	</parent>
+
+	<groupId>org.jresearch.gwt.time</groupId>
 	<artifactId>org.jresearch.gwt.time.apt.data</artifactId>
 	<name>JRESEARCH-COMMONS: GWT time support CLDT data</name>
 	<version>2.0.12-SNAPSHOT</version>
 	<packaging>gwt-lib</packaging>
+
 	<properties>
 		<java.version>11</java.version>
 		<gwt.version>2.9.0</gwt.version>
 		<gwt-locale.ver>1.0.5</gwt-locale.ver>
 		<gwt-time-apt.ver>2.0.11</gwt-time-apt.ver>
 	</properties>
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -34,6 +38,7 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
+
 	<dependencies>
 		<dependency>
 			<groupId>com.google.gwt</groupId>
