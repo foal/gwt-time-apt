@@ -27,7 +27,6 @@ import org.jresearch.gwt.time.apt.cldr.ldml.Variant;
 
 import one.util.streamex.StreamEx;
 
-@SuppressWarnings("nls")
 public class Ldmls {
 
 	private static final String ROOT = "root";
@@ -126,7 +125,7 @@ public class Ldmls {
 	}
 
 	public static <T> Optional<T> get(Ldml ldml, Class<T> propertyType) {
-		return get(propertyType, ldml::getAliasOrFallbackOrLocaleDisplayNamesOrLayoutOrContextTransformsOrCharactersOrDelimitersOrMeasurementOrDatesOrNumbersOrUnitsOrListPatternsOrCollationsOrPosixOrCharacterLabelsOrSegmentationsOrRbnfOrTypographicNamesOrAnnotationsOrMetadataOrReferencesOrSpecial);
+		return get(propertyType, ldml::getAliasOrFallbackOrLocaleDisplayNamesOrLayoutOrContextTransformsOrCharactersOrDelimitersOrMeasurementOrDatesOrNumbersOrUnitsOrListPatternsOrCollationsOrPosixOrCharacterLabelsOrSegmentationsOrRbnfOrTypographicNamesOrPersonNamesOrAnnotationsOrMetadataOrReferencesOrSpecial);
 	}
 
 	@SuppressWarnings("resource")
