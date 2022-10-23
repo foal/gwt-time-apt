@@ -18,7 +18,7 @@ jobs:
         cache: maven
         gpg-private-key: ${{ secrets.GPG_KEY }} 
     - name: maven-settings-xml-action
-      uses: whelk-io/maven-settings-xml-action@v2
+      uses: whelk-io/maven-settings-xml-action@v21
       with:
         repositories: |
           [
