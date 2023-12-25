@@ -16,7 +16,7 @@ jobs:
         java-version: '8'
         distribution: 'zulu'
         cache: maven
-    - uses: s4u/maven-settings-action@v2.7.0
+    - uses: s4u/maven-settings-action@v2.8.0
       with:
         sonatypeSnapshots: true
         apacheSnapshots: true

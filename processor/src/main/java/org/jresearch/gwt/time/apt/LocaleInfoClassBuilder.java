@@ -20,7 +20,6 @@ import com.squareup.javapoet.TypeSpec.Builder;
  * }
  * </pre>
  */
-@SuppressWarnings("nls")
 public class LocaleInfoClassBuilder {
 
 	private final Builder poetBuilder;
@@ -28,8 +27,8 @@ public class LocaleInfoClassBuilder {
 
 	private LocaleInfoClassBuilder(final CharSequence packageName, final CharSequence className) {
 		poetBuilder = TypeSpec
-				.classBuilder(ClassName.get(packageName.toString(), className.toString()))
-				.addModifiers(Modifier.PUBLIC);
+			.classBuilder(ClassName.get(packageName.toString(), className.toString()))
+			.addModifiers(Modifier.PUBLIC);
 	}
 
 	public static LocaleInfoClassBuilder create(final CharSequence packageName, final CharSequence className) {
@@ -38,16 +37,16 @@ public class LocaleInfoClassBuilder {
 
 	public LocaleInfoClassBuilder addLocale(final Identity identity) {
 		return Ldmls.getIdentityInfo(identity)
-				.map(this::addLocale)
-				.orElse(this);
+			.map(this::addLocale)
+			.orElse(this);
 	}
 
 	public LocaleInfoClassBuilder addLocale(final IdentityInfo info) {
-		// add public static final Locale AF = LocaleRegistry.register("af", "", "", "");
+		//code below add public static final Locale AF = LocaleRegistry.register("af", "", "", "");
 		String fieldName = Ldmls.createFieldName(info);
 		FieldSpec locale = FieldSpec.builder(Locale.class, fieldName, Modifier.PUBLIC, Modifier.FINAL, Modifier.STATIC)
-				.initializer("$T.register($S, $S, $S, $S)", localeUtil, info.language(), info.territory(), info.script(), info.variant())
-				.build();
+			.initializer("$T.register($S, $S, $S, $S)", localeUtil, info.language(), info.territory(), info.script(), info.variant())
+			.build();
 		poetBuilder.addField(locale);
 		return this;
 	}

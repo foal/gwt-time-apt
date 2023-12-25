@@ -6,6 +6,7 @@ import java.io.Writer;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.DayOfWeek;
+import java.time.format.FormatStyle;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -36,8 +37,6 @@ import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.TerritoryCodes;
 import org.jresearch.gwt.time.apt.cldr.ldmlSupplemental.WeekData;
 
 import com.google.auto.service.AutoService;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.JavaFile.Builder;
@@ -66,7 +65,7 @@ public class CldrDataProcessor extends AbstractProcessor {
 
 	@Override
 	public Set<String> getSupportedAnnotationTypes() {
-		return ImmutableSet.of(CldrLocale.class.getName(), CldrTime.class.getName());
+		return Set.of(CldrLocale.class.getName(), CldrTime.class.getName());
 	}
 
 	@Override
@@ -82,16 +81,16 @@ public class CldrDataProcessor extends AbstractProcessor {
 			initUnmarshaller();
 			// get first available annotated package and ignore others
 			StreamEx.of(roundEnv.getElementsAnnotatedWith(CldrTime.class))
-					.filterBy(Element::getKind, ElementKind.PACKAGE)
-					.findAny()
-					.map(PackageElement.class::cast)
-					.ifPresent(this::generateCldrTimeData);
+				.filterBy(Element::getKind, ElementKind.PACKAGE)
+				.findAny()
+				.map(PackageElement.class::cast)
+				.ifPresent(this::generateCldrTimeData);
 			// get first available annotated package and ignore others
 			StreamEx.of(roundEnv.getElementsAnnotatedWith(CldrLocale.class))
-					.filterBy(Element::getKind, ElementKind.PACKAGE)
-					.findAny()
-					.map(PackageElement.class::cast)
-					.ifPresent(this::generateCldrLocaleData);
+				.filterBy(Element::getKind, ElementKind.PACKAGE)
+				.findAny()
+				.map(PackageElement.class::cast)
+				.ifPresent(this::generateCldrLocaleData);
 			return true;
 		} catch (JAXBException e) {
 			throw new RuntimeException(e);
@@ -115,13 +114,13 @@ public class CldrDataProcessor extends AbstractProcessor {
 		Name packageName = annotatedPackage.getQualifiedName();
 		Optional<SupplementalData> supplementalData = loadSupplementalData();
 		StreamEx.of(supplementalData)
-				.map(SupplementalData::getCodeMappings)
-				.flatCollection(CodeMappings::getTerritoryCodes)
-				.map(TerritoryCodes::getType)
-				.toListAndThen(l -> generateTerritoryEnumClass(l, packageName));
+			.map(SupplementalData::getCodeMappings)
+			.flatCollection(CodeMappings::getTerritoryCodes)
+			.map(TerritoryCodes::getType)
+			.toListAndThen(l -> generateTerritoryEnumClass(l, packageName));
 		supplementalData
-				.map(SupplementalData::getWeekData)
-				.ifPresent(d -> generateWeekInfoClass(d, packageName));
+			.map(SupplementalData::getWeekData)
+			.ifPresent(d -> generateWeekInfoClass(d, packageName));
 		generatePatternInfoClass(loadMainData(), packageName);
 	}
 
@@ -158,9 +157,9 @@ public class CldrDataProcessor extends AbstractProcessor {
 		if (mainData.isEmpty()) {
 			processingEnv.getMessager().printMessage(Kind.NOTE, "Load Main data");
 			mainData = getMainUrls()
-					.map(this::loadLdml)
-					.flatMap(StreamEx::of)
-					.toImmutableList();
+				.map(this::loadLdml)
+				.flatMap(StreamEx::of)
+				.toImmutableList();
 		}
 		return mainData;
 	}
@@ -170,8 +169,8 @@ public class CldrDataProcessor extends AbstractProcessor {
 		try (InputStream content = CldrDataProcessor.class.getResourceAsStream(LDML_XML_LIST)) {
 			String list = new String(content.readAllBytes(), StandardCharsets.UTF_8);
 			return StreamEx.split(list, ';')
-					.map(CldrDataProcessor.class::getResource)
-					.nonNull();
+				.map(CldrDataProcessor.class::getResource)
+				.nonNull();
 		} catch (IOException e) {
 			processingEnv.getMessager().printMessage(Kind.ERROR, String.format("Can't get LDML data list. Error: %s", e.getMessage()));
 			return StreamEx.of();
@@ -201,39 +200,39 @@ public class CldrDataProcessor extends AbstractProcessor {
 		processingEnv.getMessager().printMessage(Kind.NOTE, "Generate week info");
 		final WeekInfoClassBuilder builder = WeekInfoClassBuilder.create(packageName, WEEK_INFO_CLASS_NAME);
 		DayOfWeek firstDay = StreamEx.of(weekData.getFirstDay())
-				.filter(CldrDataProcessor::isDefault)
-				.findAny()
-				.map(FirstDay::getDay)
-				.map(CldrDataProcessor::toDayOfWeek)
-				.orElse(DayOfWeek.MONDAY);
+			.filter(CldrDataProcessor::isDefault)
+			.findAny()
+			.map(FirstDay::getDay)
+			.map(CldrDataProcessor::toDayOfWeek)
+			.orElse(DayOfWeek.MONDAY);
 
 		builder.addDefaultFirstDay(firstDay);
 
 		int minDays = StreamEx.of(weekData.getMinDays())
-				.filter(CldrDataProcessor::isDefault)
-				.findAny()
-				.map(MinDays::getCount)
-				.map(Integer::valueOf)
-				.orElse(FALBACK_MIN_DAYS)
-				.intValue();
+			.filter(CldrDataProcessor::isDefault)
+			.findAny()
+			.map(MinDays::getCount)
+			.map(Integer::valueOf)
+			.orElse(FALBACK_MIN_DAYS)
+			.intValue();
 
 		builder.addDefaultMinDays(minDays);
 
 		StreamEx.of(weekData.getFirstDay())
-				.remove(CldrDataProcessor::isDefault)
-				.remove(CldrDataProcessor::isDraft)
-				.remove(CldrDataProcessor::isAlt)
-				.mapToEntry(FirstDay::getDay, FirstDay::getTerritories)
-				.mapKeys(CldrDataProcessor::toDayOfWeek)
-				.forKeyValue(builder::addFirstDayEntry);
+			.remove(CldrDataProcessor::isDefault)
+			.remove(CldrDataProcessor::isDraft)
+			.remove(CldrDataProcessor::isAlt)
+			.mapToEntry(FirstDay::getDay, FirstDay::getTerritories)
+			.mapKeys(CldrDataProcessor::toDayOfWeek)
+			.forKeyValue(builder::addFirstDayEntry);
 
 		StreamEx.of(weekData.getMinDays())
-				.remove(CldrDataProcessor::isDefault)
-				.remove(CldrDataProcessor::isDraft)
-				.remove(CldrDataProcessor::isAlt)
-				.mapToEntry(MinDays::getCount, MinDays::getTerritories)
-				.mapKeys(Integer::valueOf)
-				.forKeyValue(builder::addMinDaysEntry);
+			.remove(CldrDataProcessor::isDefault)
+			.remove(CldrDataProcessor::isDraft)
+			.remove(CldrDataProcessor::isAlt)
+			.mapToEntry(MinDays::getCount, MinDays::getTerritories)
+			.mapKeys(Integer::valueOf)
+			.forKeyValue(builder::addMinDaysEntry);
 
 		TypeSpec spec = builder.build();
 
@@ -299,8 +298,8 @@ public class CldrDataProcessor extends AbstractProcessor {
 		final LocaleInfoClassBuilder builder = LocaleInfoClassBuilder.create(packageName, LOCALE_INFO_CLASS_NAME);
 
 		StreamEx.of(ldmls)
-				.map(Ldml::getIdentity)
-				.forEach(builder::addLocale);
+			.map(Ldml::getIdentity)
+			.forEach(builder::addLocale);
 
 		TypeSpec spec = builder.build();
 
@@ -317,15 +316,16 @@ public class CldrDataProcessor extends AbstractProcessor {
 
 		ldmls.forEach(builder::updatePatternInfoClass);
 
-		TypeSpec spec = builder.build();
-
-		writeJavaFile(packageName, spec, builder.getStaticImports());
+		for (FormatStyle formatStyle : FormatStyle.values()) {
+			TypeSpec spec = builder.build(formatStyle);
+			writeJavaFile(packageName, spec, builder.getStaticImports());
+		}
 
 		return null;
 	}
 
 	private void writeJavaFile(final Name packageName, TypeSpec spec) {
-		writeJavaFile(packageName, spec, ImmutableList.of());
+		writeJavaFile(packageName, spec, List.of());
 	}
 
 	private void writeJavaFile(final Name packageName, TypeSpec spec, List<ClassName> staticImports) {

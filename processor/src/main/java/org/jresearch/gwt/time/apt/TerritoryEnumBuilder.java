@@ -6,7 +6,6 @@ import javax.lang.model.element.Modifier;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.TypeSpec.Builder;
 
-@SuppressWarnings("nls")
 public class TerritoryEnumBuilder {
 	/**
 	 * <pre>
@@ -17,8 +16,8 @@ public class TerritoryEnumBuilder {
 
 	private TerritoryEnumBuilder(final String enumName) {
 		poetBuilder = TypeSpec
-				.enumBuilder(enumName)
-				.addModifiers(Modifier.PUBLIC, Modifier.STATIC);
+			.enumBuilder(enumName)
+			.addModifiers(Modifier.PUBLIC, Modifier.STATIC);
 	}
 
 	public static TerritoryEnumBuilder create(final CharSequence enumName) {

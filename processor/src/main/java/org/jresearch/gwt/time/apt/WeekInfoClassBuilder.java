@@ -10,7 +10,6 @@ import java.util.Map;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Modifier;
 
-import com.google.common.collect.ImmutableList;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
@@ -40,7 +39,6 @@ import one.util.streamex.StreamEx;
  * }
  * </pre>
  */
-@SuppressWarnings("nls")
 public class WeekInfoClassBuilder {
 
 	private final List<ClassName> staticImports;
@@ -51,19 +49,19 @@ public class WeekInfoClassBuilder {
 		ClassName region = ClassName.get(packageName.toString(), CldrDataProcessor.REGION_ENUM_NAME);
 		ParameterizedTypeName setOfEnum = ParameterizedTypeName.get(ClassName.get(EnumSet.class), region);
 		ParameterizedTypeName map = ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(Integer.class), setOfEnum);
-		staticImports = ImmutableList.of(region);
+		staticImports = List.of(region);
 		staticInitBlock = CodeBlock.builder();
 		FieldSpec minDaysMap = FieldSpec.builder(map, "MIN_DAYS", Modifier.PUBLIC, Modifier.FINAL, Modifier.STATIC)
-				.initializer("new $T<>()", HashMap.class)
-				.build();
+			.initializer("new $T<>()", HashMap.class)
+			.build();
 		FieldSpec firstDayMap = FieldSpec.builder(map, "FIRST_DAY", Modifier.PUBLIC, Modifier.FINAL, Modifier.STATIC)
-				.initializer("new $T<>()", HashMap.class)
-				.build();
+			.initializer("new $T<>()", HashMap.class)
+			.build();
 		poetBuilder = TypeSpec
-				.classBuilder(ClassName.get(packageName.toString(), className.toString()))
-				.addModifiers(Modifier.PUBLIC)
-				.addField(minDaysMap)
-				.addField(firstDayMap);
+			.classBuilder(ClassName.get(packageName.toString(), className.toString()))
+			.addModifiers(Modifier.PUBLIC)
+			.addField(minDaysMap)
+			.addField(firstDayMap);
 	}
 
 	public static WeekInfoClassBuilder create(final CharSequence packageName, final CharSequence className) {
@@ -73,8 +71,8 @@ public class WeekInfoClassBuilder {
 	@SuppressWarnings("boxing")
 	public WeekInfoClassBuilder addDefaultMinDays(final int defaultMinDays) {
 		FieldSpec values = FieldSpec.builder(Integer.class, "DEFAULT_MIN_DAYS", Modifier.PUBLIC, Modifier.FINAL, Modifier.STATIC)
-				.initializer("$T.valueOf($L)", Integer.class, defaultMinDays)
-				.build();
+			.initializer("$T.valueOf($L)", Integer.class, defaultMinDays)
+			.build();
 
 		poetBuilder.addField(values);
 		return this;
@@ -83,8 +81,8 @@ public class WeekInfoClassBuilder {
 	@SuppressWarnings("boxing")
 	public WeekInfoClassBuilder addDefaultFirstDay(final DayOfWeek defaultFirstDay) {
 		FieldSpec values = FieldSpec.builder(Integer.class, "DEFAULT_FIRST_DAY", Modifier.PUBLIC, Modifier.FINAL, Modifier.STATIC)
-				.initializer("$T.valueOf($L)", Integer.class, defaultFirstDay.getValue())
-				.build();
+			.initializer("$T.valueOf($L)", Integer.class, defaultFirstDay.getValue())
+			.build();
 
 		poetBuilder.addField(values);
 		return this;
@@ -105,15 +103,15 @@ public class WeekInfoClassBuilder {
 	@SuppressWarnings("resource")
 	private static CodeBlock createTerritoryBlock(List<String> territories) {
 		return StreamEx.of(territories)
-				.map(WeekInfoClassBuilder::toJava)
-				.map(CodeBlock::of)
-				.toListAndThen(l -> CodeBlock.join(l, ", "));
+			.map(WeekInfoClassBuilder::toJava)
+			.map(CodeBlock::of)
+			.toListAndThen(l -> CodeBlock.join(l, ", "));
 	}
 
 	public TypeSpec build() {
 		return poetBuilder
-				.addStaticBlock(staticInitBlock.build())
-				.build();
+			.addStaticBlock(staticInitBlock.build())
+			.build();
 	}
 
 	private static String toJava(final String name) {

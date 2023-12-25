@@ -3,7 +3,6 @@ package org.jresearch.gwt.time.apt;
 import java.time.format.FormatStyle;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -40,7 +39,6 @@ import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
-import com.squareup.javapoet.TypeSpec.Builder;
 
 import one.util.streamex.StreamEx;
 
@@ -70,15 +68,17 @@ import one.util.streamex.StreamEx;
  * }
  * </pre>
  */
-@SuppressWarnings("nls")
 public class PatternInfoClassBuilder {
 
-	private final static List<String> IGNORED_PATTERNS = ImmutableList.of("↑↑↑");
-	private final static java.util.regex.Pattern ALIAS_PATTERN = java.util.regex.Pattern.compile("\\.\\.\\/\\.\\.\\/calendar\\[@type='(.*)'");
+	private static final String UNSUPPORTED_VALUE_S = "Unsupported value: %s";
+	private static final String TIME_PATTERNS = "TIME_PATTERNS";
+	private static final String DATE_TIME_PATTERNS = "DATE_TIME_PATTERNS";
+	private static final String DATE_PATTERNS = "DATE_PATTERNS";
+	private static final List<String> IGNORED_PATTERNS = List.of("↑↑↑");
+	private static final java.util.regex.Pattern ALIAS_PATTERN = java.util.regex.Pattern.compile("\\.\\.\\/\\.\\.\\/calendar\\[@type='(.*)'");
 
-	private final Builder poetBuilder;
+	private final String classNamePrefix;
 
-	private final com.squareup.javapoet.CodeBlock.Builder staticInitBlock;
 	private final List<ClassName> staticImports;
 
 	public final ListMultimap<String, AptPatternCoordinates> dateFullPatterns = ArrayListMultimap.create();
@@ -97,35 +97,22 @@ public class PatternInfoClassBuilder {
 	public final ListMultimap<String, AptPatternCoordinates> timeShortPatterns = ArrayListMultimap.create();
 
 	private final Messager messager;
+	private final ParameterizedTypeName coordinatesMap;
 
 	private PatternInfoClassBuilder(Messager messager, final CharSequence packageName, final CharSequence className) {
 		this.messager = messager;
 		ArrayTypeName coordinates = ArrayTypeName.of(ClassName.get(packageName.toString(), "PatternCoordinates"));
-		ParameterizedTypeName map = ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(String.class), coordinates);
+		coordinatesMap = ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(String.class), coordinates);
 
-		staticImports = ImmutableList.of(ClassName.get(Chrono.class), ClassName.get(packageName.toString(), "ImmutablePatternCoordinates"));
-		staticInitBlock = CodeBlock.builder();
-		poetBuilder = TypeSpec
-				.classBuilder(className.toString())
-				.addModifiers(Modifier.PUBLIC)
-				.addField(map(map, "DATE_FULL_PATTERNS"))
-				.addField(map(map, "DATE_LONG_PATTERNS"))
-				.addField(map(map, "DATE_MEDIUM_PATTERNS"))
-				.addField(map(map, "DATE_SHORT_PATTERNS"))
-				.addField(map(map, "DATE_TIME_FULL_PATTERNS"))
-				.addField(map(map, "DATE_TIME_LONG_PATTERNS"))
-				.addField(map(map, "DATE_TIME_MEDIUM_PATTERNS"))
-				.addField(map(map, "DATE_TIME_SHORT_PATTERNS"))
-				.addField(map(map, "TIME_FULL_PATTERNS"))
-				.addField(map(map, "TIME_LONG_PATTERNS"))
-				.addField(map(map, "TIME_MEDIUM_PATTERNS"))
-				.addField(map(map, "TIME_SHORT_PATTERNS"));
+		staticImports = List.of(ClassName.get(Chrono.class), ClassName.get(packageName.toString(), "PatternCoordinates"));
+
+		this.classNamePrefix = className.toString();
 	}
 
 	private static FieldSpec map(ParameterizedTypeName map, String name) {
 		return FieldSpec.builder(map, name, Modifier.PUBLIC, Modifier.FINAL, Modifier.STATIC)
-				.initializer("new $T<>()", HashMap.class)
-				.build();
+			.initializer("new $T<>()", HashMap.class)
+			.build();
 	}
 
 	public static PatternInfoClassBuilder create(final Messager messager, final CharSequence packageName, final CharSequence className) {
@@ -139,11 +126,11 @@ public class PatternInfoClassBuilder {
 		if (languageTag.isPresent()) {
 
 			Optional<Calendars> clendars = Ldmls.get(ldml, Dates.class)
-					.flatMap(d -> Ldmls.get(d, Calendars.class));
+				.flatMap(d -> Ldmls.get(d, Calendars.class));
 			clendars
-					.map(c -> Ldmls.getAll(c, Calendar.class))
-					.orElseGet(ImmutableList::of)
-					.forEach(c -> updatePatternInfoClass(clendars.get(), languageTag.get(), c));
+				.map(c -> Ldmls.getAll(c, Calendar.class))
+				.orElseGet(ImmutableList::of)
+				.forEach(c -> updatePatternInfoClass(clendars.get(), languageTag.get(), c));
 		}
 
 		return this;
@@ -153,14 +140,14 @@ public class PatternInfoClassBuilder {
 		Optional<Chrono> chrono = Bases.ofCldr(calendar.getType());
 		if (chrono.isPresent()) {
 			Ldmls.get(calendar, DateFormats.class)
-					.map(f -> to(calendars, f))
-					.ifPresent(p -> updatePatternInfoClass(languageTag, chrono.get(), PatternType.DATE, p));
+				.map(f -> to(calendars, f))
+				.ifPresent(p -> updatePatternInfoClass(languageTag, chrono.get(), PatternType.DATE, p));
 			Ldmls.get(calendar, TimeFormats.class)
-					.map(f -> to(calendars, f))
-					.ifPresent(p -> updatePatternInfoClass(languageTag, chrono.get(), PatternType.TIME, p));
+				.map(f -> to(calendars, f))
+				.ifPresent(p -> updatePatternInfoClass(languageTag, chrono.get(), PatternType.TIME, p));
 			Ldmls.get(calendar, DateTimeFormats.class)
-					.map(f -> to(calendars, f))
-					.ifPresent(p -> updatePatternInfoClass(languageTag, chrono.get(), PatternType.DATE_TIME, p));
+				.map(f -> to(calendars, f))
+				.ifPresent(p -> updatePatternInfoClass(languageTag, chrono.get(), PatternType.DATE_TIME, p));
 		}
 	}
 
@@ -171,11 +158,11 @@ public class PatternInfoClassBuilder {
 			@Override
 			public Optional<String> getPattern(FormatStyle formatStyle) {
 				return StreamEx.of(formats)
-						.filterBy(DateFormatLength::getType, formatStyle.name().toLowerCase())
-						.findAny()
-						.flatMap(f -> Ldmls.get(f, DateFormat.class))
-						.flatMap(f -> Ldmls.get(f, Pattern.class))
-						.map(Pattern::getvalue);
+					.filterBy(DateFormatLength::getType, formatStyle.name().toLowerCase())
+					.findAny()
+					.flatMap(f -> Ldmls.get(f, DateFormat.class))
+					.flatMap(f -> Ldmls.get(f, Pattern.class))
+					.map(Pattern::getvalue);
 			}
 		};
 	}
@@ -187,11 +174,11 @@ public class PatternInfoClassBuilder {
 			@Override
 			public Optional<String> getPattern(FormatStyle formatStyle) {
 				return StreamEx.of(formats)
-						.filterBy(TimeFormatLength::getType, formatStyle.name().toLowerCase())
-						.findAny()
-						.flatMap(f -> Ldmls.get(f, TimeFormat.class))
-						.flatMap(f -> Ldmls.get(f, Pattern.class))
-						.map(Pattern::getvalue);
+					.filterBy(TimeFormatLength::getType, formatStyle.name().toLowerCase())
+					.findAny()
+					.flatMap(f -> Ldmls.get(f, TimeFormat.class))
+					.flatMap(f -> Ldmls.get(f, Pattern.class))
+					.map(Pattern::getvalue);
 			}
 		};
 	}
@@ -203,11 +190,11 @@ public class PatternInfoClassBuilder {
 			@Override
 			public Optional<String> getPattern(FormatStyle formatStyle) {
 				return StreamEx.of(formats)
-						.filterBy(DateTimeFormatLength::getType, formatStyle.name().toLowerCase())
-						.findAny()
-						.flatMap(f -> Ldmls.get(f, DateTimeFormat.class))
-						.flatMap(f -> Ldmls.get(f, Pattern.class))
-						.map(Pattern::getvalue);
+					.filterBy(DateTimeFormatLength::getType, formatStyle.name().toLowerCase())
+					.findAny()
+					.flatMap(f -> Ldmls.get(f, DateTimeFormat.class))
+					.flatMap(f -> Ldmls.get(f, Pattern.class))
+					.map(Pattern::getvalue);
 			}
 		};
 	}
@@ -222,12 +209,12 @@ public class PatternInfoClassBuilder {
 			if (matcher.find()) {
 				String calendarType = matcher.group(1);
 				result = StreamEx.of(Ldmls.getAll(calendars, Calendar.class))
-						.filterBy(Calendar::getType, calendarType)
-						.limit(1)
-						.map(c -> Ldmls.get(c, TimeFormats.class))
-						.flatMap(StreamEx::of)
-						.flatCollection(f -> getTimeFormats(calendars, f))
-						.toList();
+					.filterBy(Calendar::getType, calendarType)
+					.limit(1)
+					.map(c -> Ldmls.get(c, TimeFormats.class))
+					.flatMap(StreamEx::of)
+					.flatCollection(f -> getTimeFormats(calendars, f))
+					.toList();
 			}
 		}
 		return result;
@@ -243,12 +230,12 @@ public class PatternInfoClassBuilder {
 			if (matcher.find()) {
 				String calendarType = matcher.group(1);
 				result = StreamEx.of(Ldmls.getAll(calendars, Calendar.class))
-						.filterBy(Calendar::getType, calendarType)
-						.limit(1)
-						.map(c -> Ldmls.get(c, DateFormats.class))
-						.flatMap(StreamEx::of)
-						.flatCollection(f -> getDateFormats(calendars, f))
-						.toList();
+					.filterBy(Calendar::getType, calendarType)
+					.limit(1)
+					.map(c -> Ldmls.get(c, DateFormats.class))
+					.flatMap(StreamEx::of)
+					.flatCollection(f -> getDateFormats(calendars, f))
+					.toList();
 			}
 		}
 		return result;
@@ -264,12 +251,12 @@ public class PatternInfoClassBuilder {
 			if (matcher.find()) {
 				String calendarType = matcher.group(1);
 				result = StreamEx.of(Ldmls.getAll(calendars, Calendar.class))
-						.filterBy(Calendar::getType, calendarType)
-						.limit(1)
-						.map(c -> Ldmls.get(c, DateTimeFormats.class))
-						.flatMap(StreamEx::of)
-						.flatCollection(f -> getDateTimeFormats(calendars, f))
-						.toList();
+					.filterBy(Calendar::getType, calendarType)
+					.limit(1)
+					.map(c -> Ldmls.get(c, DateTimeFormats.class))
+					.flatMap(StreamEx::of)
+					.flatCollection(f -> getDateTimeFormats(calendars, f))
+					.toList();
 			}
 		}
 		return result;
@@ -278,10 +265,10 @@ public class PatternInfoClassBuilder {
 	@SuppressWarnings("resource")
 	private void updatePatternInfoClass(String languageTag, Chrono chrono, PatternType patternType, PatternProvider provider) {
 		StreamEx.of(FormatStyle.values())
-				.mapToEntry(provider::getPattern)
-				.filterValues(Optional::isPresent)
-				.mapValues(Optional::get)
-				.forEach(e -> addPattern(languageTag, chrono, patternType, e.getKey(), e.getValue()));
+			.mapToEntry(provider::getPattern)
+			.filterValues(Optional::isPresent)
+			.mapValues(Optional::get)
+			.forEach(e -> addPattern(languageTag, chrono, patternType, e.getKey(), e.getValue()));
 	}
 
 	public PatternInfoClassBuilder addPattern(String languageTag, Chrono chrono, PatternType patternType, FormatStyle formatStyle, String pattern) {
@@ -300,7 +287,7 @@ public class PatternInfoClassBuilder {
 		case TIME:
 			return selectTimeMap(formatStyle);
 		default:
-			throw new IllegalArgumentException(String.format("Unnsupported patternType: %s", patternType));
+			throw new IllegalArgumentException(String.format(UNSUPPORTED_VALUE_S, patternType));
 		}
 	}
 
@@ -315,7 +302,7 @@ public class PatternInfoClassBuilder {
 		case SHORT:
 			return dateShortPatterns;
 		default:
-			throw new IllegalArgumentException(String.format("Unnsupported formatStyle: %s", formatStyle));
+			throw new IllegalArgumentException(String.format(UNSUPPORTED_VALUE_S, formatStyle));
 		}
 	}
 
@@ -330,7 +317,7 @@ public class PatternInfoClassBuilder {
 		case SHORT:
 			return dateTimeShortPatterns;
 		default:
-			throw new IllegalArgumentException(String.format("Unnsupported formatStyle: %s", formatStyle));
+			throw new IllegalArgumentException(String.format(UNSUPPORTED_VALUE_S, formatStyle));
 		}
 	}
 
@@ -345,37 +332,52 @@ public class PatternInfoClassBuilder {
 		case SHORT:
 			return timeShortPatterns;
 		default:
-			throw new IllegalArgumentException(String.format("Unnsupported formatStyle: %s", formatStyle));
+			throw new IllegalArgumentException(String.format(UNSUPPORTED_VALUE_S, formatStyle));
 		}
 	}
 
-	public TypeSpec build() {
-		generatePatterns(dateFullPatterns, "DATE_FULL_PATTERNS");
-		generatePatterns(dateLongPatterns, "DATE_LONG_PATTERNS");
-		generatePatterns(dateMediumPatterns, "DATE_MEDIUM_PATTERNS");
-		generatePatterns(dateShortPatterns, "DATE_SHORT_PATTERNS");
-		generatePatterns(dateTimeFullPatterns, "DATE_TIME_FULL_PATTERNS");
-		generatePatterns(dateTimeLongPatterns, "DATE_TIME_LONG_PATTERNS");
-		generatePatterns(dateTimeMediumPatterns, "DATE_TIME_MEDIUM_PATTERNS");
-		generatePatterns(dateTimeShortPatterns, "DATE_TIME_SHORT_PATTERNS");
-		generatePatterns(timeFullPatterns, "TIME_FULL_PATTERNS");
-		generatePatterns(timeLongPatterns, "TIME_LONG_PATTERNS");
-		generatePatterns(timeMediumPatterns, "TIME_MEDIUM_PATTERNS");
-		generatePatterns(timeShortPatterns, "TIME_SHORT_PATTERNS");
-		return poetBuilder
-				.addStaticBlock(staticInitBlock.build())
-				.build();
+	public TypeSpec build(FormatStyle formatStyle) {
+		CodeBlock.Builder staticInitBlock = CodeBlock.builder();
+		if (formatStyle == FormatStyle.FULL) {
+			generatePatterns(staticInitBlock, dateFullPatterns, DATE_PATTERNS);
+			generatePatterns(staticInitBlock, dateTimeFullPatterns, DATE_TIME_PATTERNS);
+			generatePatterns(staticInitBlock, timeFullPatterns, TIME_PATTERNS);
+		} else if (formatStyle == FormatStyle.LONG) {
+			generatePatterns(staticInitBlock, dateLongPatterns, DATE_PATTERNS);
+			generatePatterns(staticInitBlock, dateTimeLongPatterns, DATE_TIME_PATTERNS);
+			generatePatterns(staticInitBlock, timeLongPatterns, TIME_PATTERNS);
+		} else if (formatStyle == FormatStyle.MEDIUM) {
+			generatePatterns(staticInitBlock, dateMediumPatterns, DATE_PATTERNS);
+			generatePatterns(staticInitBlock, dateTimeMediumPatterns, DATE_TIME_PATTERNS);
+			generatePatterns(staticInitBlock, timeMediumPatterns, TIME_PATTERNS);
+		} else if (formatStyle == FormatStyle.SHORT) {
+			generatePatterns(staticInitBlock, dateShortPatterns, DATE_PATTERNS);
+			generatePatterns(staticInitBlock, dateTimeShortPatterns, DATE_TIME_PATTERNS);
+			generatePatterns(staticInitBlock, timeShortPatterns, TIME_PATTERNS);
+		}
+		return TypeSpec
+			.classBuilder(classNamePrefix + up(formatStyle))
+			.addModifiers(Modifier.PUBLIC)
+			.addField(map(coordinatesMap, DATE_PATTERNS))
+			.addField(map(coordinatesMap, DATE_TIME_PATTERNS))
+			.addField(map(coordinatesMap, TIME_PATTERNS))
+			.addStaticBlock(staticInitBlock.build())
+			.build();
 	}
 
-	private void generatePatterns(ListMultimap<String, AptPatternCoordinates> map, String mapName) {
+	private static String up(FormatStyle style) {
+		return style.name().substring(0, 1).toUpperCase() + style.name().substring(1).toLowerCase();
+	}
+
+	private void generatePatterns(CodeBlock.Builder staticInitBlock, ListMultimap<String, AptPatternCoordinates> map, String mapName) {
 		messager.printMessage(Kind.NOTE, String.format("Generate %s init", mapName));
-		map.keySet().forEach(p -> generatePatterns(map, mapName, p));
+		map.keySet().forEach(p -> generatePatterns(staticInitBlock, map, mapName, p));
 	}
 
-	private void generatePatterns(ListMultimap<String, AptPatternCoordinates> map, String mapName, String pattern) {
-		com.squareup.javapoet.CodeBlock.Builder builder = CodeBlock.builder();
+	private static void generatePatterns(CodeBlock.Builder staticInitBlock, ListMultimap<String, AptPatternCoordinates> map, String mapName, String pattern) {
+		CodeBlock.Builder builder = CodeBlock.builder();
 		builder.add("$L.put($S, new PatternCoordinates[] {\n", mapName, pattern);
-		map.get(pattern).forEach(pc -> builder.add("of($L, $T.forLanguageTag(\"$L\")),\n", pc.chrono(), Locale.class, pc.languageTag()));
+		map.get(pattern).forEach(pc -> builder.add("of($L, $S),\n", pc.chrono(), pc.languageTag()));
 		builder.add("})");
 		staticInitBlock.addStatement(builder.build());
 	}

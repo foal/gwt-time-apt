@@ -16,7 +16,7 @@
 		<java.version>11</java.version>
 		<gwt.version>2.9.0</gwt.version>
 		<gwt-locale.ver>1.0.5</gwt-locale.ver>
-		<gwt-time-apt.ver>2.0.13</gwt-time-apt.ver>
+		<gwt-time-apt.ver>2.0.14-SNAPSHOT</gwt-time-apt.ver>
 	</properties>
 
 	<dependencyManagement>
@@ -58,10 +58,6 @@
 			<groupId>org.jresearch.gwt.time</groupId>
 			<artifactId>org.jresearch.gwt.time.apt.annotation</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>org.immutables</groupId>
-			<artifactId>value-annotations</artifactId>
-		</dependency>
 	</dependencies>
 	<build>
 		<pluginManagement>
@@ -88,11 +84,6 @@
 				<configuration>
 					<showWarnings>true</showWarnings>
 					<annotationProcessorPaths>
-						<path>
-							<groupId>org.immutables</groupId>
-							<artifactId>value</artifactId>
-							<version>${immutables.ver}</version>
-						</path>
 						<path>
 							<groupId>org.jresearch.gwt.time</groupId>
 							<artifactId>org.jresearch.gwt.time.apt.processor</artifactId>
