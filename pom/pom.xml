@@ -3,7 +3,7 @@
 	<parent>
 		<groupId>org.jresearch</groupId>
 		<artifactId>org.jresearch.pom</artifactId>
-		<version>29-SNAPSHOT</version>
+		<version>30-SNAPSHOT</version>
 	</parent>
 	<groupId>org.jresearch.gwt.time</groupId>
 	<artifactId>org.jresearch.gwt.time.apt.pom</artifactId>
@@ -22,8 +22,18 @@
 		<module>../processor</module>
 	</modules>
 	<properties>
+        <junit-bom-version>5.13.4</junit-bom-version>
+        <jaxb-runtime-version>2.3.3</jaxb-runtime-version>
+        <jakarta.xml.bind-api-version>2.3.3</jakarta.xml.bind-api-version>
+        <jsr305-version>3.0.2</jsr305-version>
+        <value-annotations-version>2.11.3</value-annotations-version>
+        <streamex-version>0.8.4</streamex-version>
+        <auto-service-annotations-version>1.1.1</auto-service-annotations-version>
+        <javapoet-version>1.13.0</javapoet-version>
+        <guava-version>33.4.8-jre</guava-version>
+        <errorproneannotations-version>2.41.0</errorproneannotations-version>
 		<java.version>11</java.version>
-		<gwt.version>2.9.0</gwt.version>
+		<gwt-version>2.9.0</gwt-version>
 		<gwt-locale.ver>1.0.5</gwt-locale.ver>
 	</properties>
 	<dependencyManagement>
@@ -43,6 +53,84 @@
 				<artifactId>org.jresearch.gwt.time.apt.processor</artifactId>
 				<version>${project.version}</version>
 			</dependency>
+            <dependency>
+                <groupId>com.google.gwt</groupId>
+                <artifactId>gwt-user</artifactId>
+                <version>${gwt-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.gwt</groupId>
+                <artifactId>gwt-dev</artifactId>
+                <version>${gwt-version}</version>
+                <exclusions>
+                    <exclusion>
+                        <artifactId>commons-logging</artifactId>
+                        <groupId>commons-logging</groupId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.google.errorprone</groupId>
+                <artifactId>error_prone_annotations</artifactId>
+                <version>${errorproneannotations-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup</groupId>
+                <artifactId>javapoet</artifactId>
+                <version>${javapoet-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.auto.service</groupId>
+                <artifactId>auto-service-annotations</artifactId>
+                <version>${auto-service-annotations-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.auto.service</groupId>
+                <artifactId>auto-service</artifactId>
+                <version>${auto-service-annotations-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>one.util</groupId>
+                <artifactId>streamex</artifactId>
+                <version>${streamex-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.immutables</groupId>
+                <artifactId>value</artifactId>
+                <version>${value-annotations-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.immutables</groupId>
+                <artifactId>value-annotations</artifactId>
+                <version>${value-annotations-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.code.findbugs</groupId>
+                <artifactId>jsr305</artifactId>
+                <version>${jsr305-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>jakarta.xml.bind</groupId>
+                <artifactId>jakarta.xml.bind-api</artifactId>
+                <version>${jakarta.xml.bind-api-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.glassfish.jaxb</groupId>
+                <artifactId>jaxb-runtime</artifactId>
+                <version>${jaxb-runtime-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>${junit-bom-version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
 		</dependencies>
 	</dependencyManagement>
 	<build>

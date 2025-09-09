@@ -3,7 +3,7 @@
 	<parent>
 		<groupId>org.jresearch</groupId>
 		<artifactId>org.jresearch.pom</artifactId>
-		<version>29-SNAPSHOT</version>
+		<version>30-SNAPSHOT</version>
 	</parent>
 
 	<groupId>org.jresearch.gwt.time</groupId>
@@ -14,9 +14,9 @@
 
 	<properties>
 		<java.version>11</java.version>
-		<gwt.version>2.9.0</gwt.version>
+		<gwt-version>2.9.0</gwt-version>
 		<gwt-locale.ver>1.0.5</gwt-locale.ver>
-		<gwt-time-apt.ver>2.0.15</gwt-time-apt.ver>
+		<gwt-time-apt.ver>2.0.16-SNAPSHOT</gwt-time-apt.ver>
 	</properties>
 
 	<dependencyManagement>
@@ -36,6 +36,22 @@
 				<artifactId>org.jresearch.gwt.time.apt.processor</artifactId>
 				<version>${gwt-time-apt.ver}</version>
 			</dependency>
+            <dependency>
+                <groupId>com.google.gwt</groupId>
+                <artifactId>gwt-user</artifactId>
+                <version>${gwt-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.gwt</groupId>
+                <artifactId>gwt-dev</artifactId>
+                <version>${gwt-version}</version>
+                <exclusions>
+                    <exclusion>
+                        <artifactId>commons-logging</artifactId>
+                        <groupId>commons-logging</groupId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
 		</dependencies>
 	</dependencyManagement>
 
@@ -87,7 +103,6 @@
 						<path>
 							<groupId>org.jresearch.gwt.time</groupId>
 							<artifactId>org.jresearch.gwt.time.apt.processor</artifactId>
-							<version>${project.version}</version>
 						</path>
 					</annotationProcessorPaths>
 				</configuration>
