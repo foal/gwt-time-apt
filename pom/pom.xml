@@ -3,7 +3,7 @@
 	<parent>
 		<groupId>org.jresearch</groupId>
 		<artifactId>org.jresearch.pom</artifactId>
-		<version>30-SNAPSHOT</version>
+		<version>31</version>
 	</parent>
 	<groupId>org.jresearch.gwt.time</groupId>
 	<artifactId>org.jresearch.gwt.time.apt.pom</artifactId>
